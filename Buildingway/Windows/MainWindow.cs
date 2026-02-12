@@ -69,68 +69,72 @@ public class MainWindow : CustomWindow, IDisposable
         var id = 0;
         foreach (var group in Plugin.ObjectManager.Groups.ToList())
         {
-            using var hoverable = new Ui.Hoverable(id.ToString(), padding: new Vector2(5f, 5f));
-            using var pushedId = ImRaii.PushId(id++);
+            using (var hoverable = new Ui.Hoverable(id.ToString(), padding: new Vector2(5f, 5f)))
+            {
+                using var pushedId = ImRaii.PushId(id++);
             
-            ImGui.Text(group.Path);
-            if (ImGuiComponents.IconButton("###GroupReposition", FontAwesomeIcon.ArrowsToDot))
-            {
-                group.Position = player.Position;
-                group.UpdateTransform();
-            }
-            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-            {
-                ImGui.SetTooltip("Set object position to your characters position.");
-            }
-            
-            ImGui.SameLine();
-            if (ImGuiComponents.IconButton("###GroupGizmo", FontAwesomeIcon.RulerCombined))
-            {
-                // TODO: Actually add gizmo for objects
-            }
-            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-            {
-                ImGui.SetTooltip("Edit using the gizmo");
-            }
-            
-            ImGui.SameLine();
-            using (_ = ImRaii.Disabled(!ctrl))
-            {
-                if (ImGuiComponents.IconButton("###GroupErase", FontAwesomeIcon.Eraser))
+                ImGui.Text(group.Path);
+                if (ImGuiComponents.IconButton("###GroupReposition", FontAwesomeIcon.ArrowsToDot))
                 {
-                    Plugin.ObjectManager.Groups.Remove(group);
-                    group.Dispose();
-                    continue;
+                    group.Position = player.Position;
+                    group.UpdateTransform();
                 }
                 if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
                 {
-                    ImGui.SetTooltip("Ctrl + Click to erase this object.");
+                    ImGui.SetTooltip("Set object position to your characters position.");
+                }
+                
+                ImGui.SameLine();
+                if (ImGuiComponents.IconButton("###GroupGizmo", FontAwesomeIcon.RulerCombined))
+                {
+                    // TODO: Actually add gizmo for objects
+                }
+                if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+                {
+                    ImGui.SetTooltip("Edit using the gizmo");
+                }
+                
+                ImGui.SameLine();
+                using (_ = ImRaii.Disabled(!ctrl))
+                {
+                    if (ImGuiComponents.IconButton("###GroupErase", FontAwesomeIcon.Eraser))
+                    {
+                        Plugin.ObjectManager.Groups.Remove(group);
+                        group.Dispose();
+                        continue;
+                    }
+                    if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+                    {
+                        ImGui.SetTooltip("Ctrl + Click to erase this object.");
+                    }
+                }
+
+                ImGui.SameLine();
+                if (ImGui.Checkbox("Collision", ref group.Collide))
+                {
+                    group.UpdateTransform();
+                }
+                
+                if (ImGui.DragFloat3("Position", ref group.Position, 0.05f))
+                {
+                    group.UpdateTransform();
+                }
+                
+                var asEuler = group.Rotation.ToEulerAngles();
+                if (ImGui.DragFloat3("Rotation", ref asEuler, 0.05f))
+                {
+                    var asQuat = asEuler.ToQuaternion();
+                    group.Rotation = asQuat;
+                    group.UpdateTransform();
+                }
+
+                if (ImGui.DragFloat3("Scale", ref group.Scale, 0.05f))
+                {
+                    group.UpdateTransform();
                 }
             }
-
-            ImGui.SameLine();
-            if (ImGui.Checkbox("Collision", ref group.Collide))
-            {
-                group.UpdateTransform();
-            }
             
-            if (ImGui.DragFloat3("Position", ref group.Position, 0.05f))
-            {
-                group.UpdateTransform();
-            }
-            
-            var asEuler = group.Rotation.ToEulerAngles();
-            if (ImGui.DragFloat3("Rotation", ref asEuler, 0.05f))
-            {
-                var asQuat = asEuler.ToQuaternion();
-                group.Rotation = asQuat;
-                group.UpdateTransform();
-            }
-
-            if (ImGui.DragFloat3("Scale", ref group.Scale, 0.05f))
-            {
-                group.UpdateTransform();
-            }
+            ImGui.Spacing();
         }
     }
 }
