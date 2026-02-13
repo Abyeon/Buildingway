@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
+using Buildingway.Utils;
 using Buildingway.Utils.Interface;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
@@ -83,6 +84,7 @@ public class CatalogWindow : CustomWindow, IDisposable
     }
 
     private FurnitureCatalogCategory? selectedCategory = null;
+    private string query = "";
     
     protected override void Render()
     {
@@ -92,6 +94,7 @@ public class CatalogWindow : CustomWindow, IDisposable
             return;
         }
         
+        ImGui.InputText("Search", ref query);
         DrawCategories();
         
         var collision = plugin.Configuration.SpawnWithCollision;
@@ -115,6 +118,8 @@ public class CatalogWindow : CustomWindow, IDisposable
         var player = Plugin.ObjectTable.LocalPlayer;
 
         var list = selectedCategory == null ? allFurniture : furnitureDict[selectedCategory.Value.RowId];
+        
+        if (query != "") list = list.Where(x => x.Item.Value.Name.ToString().Contains(query, StringComparison.InvariantCultureIgnoreCase)).ToList();
         
         foreach (var furniture in list)
         {

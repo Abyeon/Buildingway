@@ -37,6 +37,7 @@ public sealed class Plugin : IDalamudPlugin
     private MainWindow MainWindow { get; init; }
     private CatalogWindow CatalogWindow { get; init; }
     private SavedPathsWindow SavedPathsWindow { get; init; }
+    internal Overlay Overlay { get; init; }
 
     public Plugin()
     {
@@ -54,11 +55,15 @@ public sealed class Plugin : IDalamudPlugin
         MainWindow = new MainWindow(this);
         CatalogWindow = new CatalogWindow(this);
         SavedPathsWindow = new SavedPathsWindow(this);
+        Overlay = new Overlay(this);
 
         WindowSystem.AddWindow(ConfigWindow);
         WindowSystem.AddWindow(MainWindow);
         WindowSystem.AddWindow(CatalogWindow);
         WindowSystem.AddWindow(SavedPathsWindow);
+        WindowSystem.AddWindow(Overlay);
+        
+        Overlay.Toggle();
         
         PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
@@ -78,6 +83,7 @@ public sealed class Plugin : IDalamudPlugin
         MainWindow.Dispose();
         CatalogWindow.Dispose();
         SavedPathsWindow.Dispose();
+        Overlay.Dispose();
 
         CommandHandler.Dispose();
         ObjectManager.Dispose();

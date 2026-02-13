@@ -56,7 +56,7 @@ public class MainWindow : CustomWindow, IDisposable
         {
             Plugin.Framework.RunOnFrameworkThread(() =>
             {
-                Plugin.ObjectManager.Add(path, player.Position,Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
+                Plugin.ObjectManager.Add(path, player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
             });
         }
 
@@ -67,6 +67,8 @@ public class MainWindow : CustomWindow, IDisposable
             {
                 Plugin.ObjectManager.Clear();
             });
+            
+            plugin.Overlay.SelectedGroup = null;
         }
 
         ImGui.SameLine();
@@ -97,7 +99,7 @@ public class MainWindow : CustomWindow, IDisposable
                 ImGui.Text(groupPath);
                 if (ImGuiComponents.IconButton("###GroupReposition", FontAwesomeIcon.ArrowsToDot))
                 {
-                    group.Position = player.Position;
+                    group.Transform.Position = player.Position;
                     group.UpdateTransform();
                 }
                 if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
@@ -108,7 +110,7 @@ public class MainWindow : CustomWindow, IDisposable
                 ImGui.SameLine();
                 if (ImGuiComponents.IconButton("###GroupGizmo", FontAwesomeIcon.RulerCombined))
                 {
-                    // TODO: Actually add gizmo for objects
+                    plugin.Overlay.SelectedGroup = group;
                 }
                 if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
                 {
@@ -132,6 +134,7 @@ public class MainWindow : CustomWindow, IDisposable
                     {
                         Plugin.ObjectManager.Groups.Remove(group);
                         group.Dispose();
+                        plugin.Overlay.SelectedGroup = null;
                         continue;
                     }
                     if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
@@ -154,20 +157,19 @@ public class MainWindow : CustomWindow, IDisposable
                     group.UpdateTransform();
                 }
                 
-                if (ImGui.DragFloat3("Position", ref group.Position, 0.05f))
+                if (ImGui.DragFloat3("Position", ref group.Transform.Position, 0.05f))
                 {
-                    group.UpdateTransform();
-                }
-                
-                var asEuler = group.Rotation.ToEulerAngles();
-                if (ImGui.DragFloat3("Rotation", ref asEuler, 0.05f))
-                {
-                    var asQuat = asEuler.ToQuaternion();
-                    group.Rotation = asQuat;
                     group.UpdateTransform();
                 }
 
-                if (ImGui.DragFloat3("Scale", ref group.Scale, 0.05f))
+                var euler = group.Transform.Rotation.ToEuler();
+                if (ImGui.DragFloat3("Rotation", ref euler))
+                {
+                    group.Transform.Rotation = euler.ToQuaternion();
+                    group.UpdateTransform();
+                }
+                
+                if (ImGui.DragFloat3("Scale", ref group.Transform.Scale, 0.05f))
                 {
                     group.UpdateTransform();
                 }

@@ -8,25 +8,8 @@ namespace Buildingway.Utils.Objects;
 public unsafe class Model : IDisposable
 {
     public readonly BgObject* BgObject;
-    public string Path { get; private set; }
-
-    public Vector3 Position
-    {
-        get => BgObject->Position;
-        set => BgObject->Position = value;
-    }
-
-    public Quaternion Rotation
-    {
-        get => BgObject->Rotation;
-        set => BgObject->Rotation = value;
-    }
-
-    public Vector3 Scale
-    {
-        get => BgObject->Scale;
-        set => BgObject->Scale = value;
-    }
+    public string Path;
+    public Transform Transform;
 
     public Model(string path, Vector3? position = null, Quaternion? rotation = null, Vector3? scale = null)
     {
@@ -36,14 +19,15 @@ public unsafe class Model : IDisposable
         Path = path;
         BgObject = Plugin.BgObjectFunctions.BgObjectCreate(path);
         
-        if (position != null) Position = position.Value;
-        if (rotation != null) Rotation = rotation.Value;
-        if (scale != null) Scale = scale.Value;
+        Transform.Position = position ?? Vector3.Zero;
+        Transform.Rotation = rotation ?? Quaternion.Identity;
+        Transform.Scale = scale ?? Vector3.One;
 
         if (BgObject->ModelResourceHandle->LoadState == 7)
         {
             var ex = (BgObjectEx*)BgObject;
             ex->UpdateCulling();
+            UpdateTransform();
         }
         else
         {
@@ -56,6 +40,13 @@ public unsafe class Model : IDisposable
         var ex = (BgObjectEx*)BgObject;
         ex->Alpha = alpha;
         UpdateRender();
+    }
+
+    public void UpdateTransform()
+    {
+        BgObject->Position = Transform.Position;
+        BgObject->Rotation = Transform.Rotation;
+        BgObject->Scale = Transform.Scale;
     }
 
     public void UpdateRender()

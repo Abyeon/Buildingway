@@ -3,51 +3,63 @@ using System.Numerics;
 
 namespace Buildingway.Utils;
 
+// yoinked from brio, which is yoinked from clientstructs (and the endless cycle of stealing continues)
+// https://github.com/Etheirys/Brio/blob/1472d6142af2d6e42c7c14aba2e548cbb8084a38/Brio/Core/MathHelpers.cs#L7
 public static class NumericsExtensions
 {
-    public static Quaternion ToQuaternion(this Vector3 euler)
-    {
-        var cy = (float)Math.Cos(euler.Z * 0.5);
-        var sy = (float)Math.Sin(euler.Z * 0.5);
-        var cp = (float)Math.Cos(euler.Y * 0.5);
-        var sp = (float)Math.Sin(euler.Y * 0.5);
-        var cr = (float)Math.Cos(euler.X * 0.5);
-        var sr = (float)Math.Sin(euler.X * 0.5);
+    public const float DegreesToRadians = MathF.PI / 180.0f;
+    public const float RadiansToDegrees = 180.0f / MathF.PI;
+    
+    public const float Deg2Rad = MathF.PI * 2.0f / 360.0f;
+    public const float Rad2Deg = 1.0f / Deg2Rad;
 
-        return new Quaternion
-        {
-            W = (cr * cp * cy + sr * sp * sy),
-            X = (sr * cp * cy - cr * sp * sy),
-            Y = (cr * sp * cy + sr * cp * sy),
-            Z = (cr * cp * sy - sr * sp * cy)
-        };
+    public static Vector3 ToEuler(this Quaternion r)
+    {
+        float yaw = MathF.Atan2(2.0f * (r.Y * r.W + r.X * r.Z), 1.0f - 2.0f * (r.X * r.X + r.Y * r.Y));
+        float pitch = MathF.Asin(2.0f * (r.X * r.W - r.Y * r.Z));
+        float roll = MathF.Atan2(2.0f * (r.X * r.Y + r.Z * r.W), 1.0f - 2.0f * (r.X * r.X + r.Z * r.Z));
+
+        return new Vector3(yaw, pitch, roll) * RadiansToDegrees;
     }
     
-    public static Vector3 ToEulerAngles(this Quaternion quat)
+    public static Quaternion ToEulerAngles(this Vector3 euler) => FromEulerRad(euler * Deg2Rad);
+    
+    public static Quaternion Normalize(Quaternion value)
     {
-        Vector3 angles = new();
+        var sqrMagnitude = value.X * value.X + value.Y * value.Y + value.Z * value.Z + value.W * value.W;
 
-        // roll / x
-        double sinrCosp = 2 * (quat.W * quat.X + quat.Y * quat.Z);
-        double cosrCosp = 1 - 2 * (quat.X * quat.X + quat.Y * quat.Y);
-        angles.X = (float)Math.Atan2(sinrCosp, cosrCosp);
+        var length = MathF.Sqrt(sqrMagnitude);
+        if(length < float.Epsilon)
+            return Quaternion.Identity;
 
-        // pitch / y
-        double sinp = 2 * (quat.W * quat.Y - quat.Z * quat.X);
-        if (Math.Abs(sinp) >= 1)
-        {
-            angles.Y = (float)Math.CopySign(Math.PI / 2, sinp);
-        }
-        else
-        {
-            angles.Y = (float)Math.Asin(sinp);
-        }
+        return new Quaternion(value.X / length, value.Y / length, value.Z / length, value.W / length);
+    }
+    
+    public static Quaternion ToQuaternion(this Vector3 euler)
+    {
+        euler *= DegreesToRadians;
+        Quaternion quaternion = Quaternion.CreateFromYawPitchRoll(euler.X, euler.Y, euler.Z);
+        return Quaternion.Normalize(quaternion);
+    }
+    
+    private static Quaternion FromEulerRad(Vector3 euler)
+    {
+        var halfX = euler.X * 0.5f;
+        var cX = MathF.Cos(halfX);
+        var sX = MathF.Sin(halfX);
 
-        // yaw / z
-        double sinyCosp = 2 * (quat.W * quat.Z + quat.X * quat.Y);
-        double cosyCosp = 1 - 2 * (quat.Y * quat.Y + quat.Z * quat.Z);
-        angles.Z = (float)Math.Atan2(sinyCosp, cosyCosp);
+        var halfY = euler.Y * 0.5f;
+        var cY = MathF.Cos(halfY);
+        var sY = MathF.Sin(halfY);
 
-        return angles;
+        var halfZ = euler.Z * 0.5f;
+        var cZ = MathF.Cos(halfZ);
+        var sZ = MathF.Sin(halfZ);
+
+        var qX = new Quaternion(sX, 0.0f, 0.0f, cX);
+        var qY = new Quaternion(0.0f, sY, 0.0f, cY);
+        var qZ = new Quaternion(0.0f, 0.0f, sZ, cZ);
+
+        return Normalize(qZ * qY * qX);
     }
 }

@@ -46,16 +46,15 @@ public static class DrawExtensions
         
         if (ImGuizmo.IsUsing())
         {
-            Vector3 pos = new(), rot = new(), scale = new();
-            ImGuizmo.DecomposeMatrixToComponents(ref matrix.M11, ref pos.X, ref rot.X, ref scale.X);
+            Matrix4x4.Decompose(matrix, out var scale, out var rotation, out var translation);
 
             switch (Operation)
             {
                 case ImGuizmoOperation.Translate:
-                    transform.Position = pos;
+                    transform.Position = translation;
                     break;
                 case ImGuizmoOperation.Rotate:
-                    transform.Rotation = rot;
+                    transform.Rotation = rotation;
                     break;
                 case ImGuizmoOperation.Scale:
                     transform.Scale = scale;
