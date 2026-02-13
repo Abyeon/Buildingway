@@ -29,7 +29,6 @@ public class MainWindow : CustomWindow, IDisposable
     public void Dispose() { }
 
     private string path = "bgcommon/hou/outdoor/general/0332/asset/gar_b0_m0332.sgb";
-    private bool collision = true;
 
     protected override void Render()
     {
@@ -46,7 +45,7 @@ public class MainWindow : CustomWindow, IDisposable
         {
             Plugin.Framework.RunOnFrameworkThread(() =>
             {
-                Plugin.ObjectManager.Add(path, player.Position,Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: collision);
+                Plugin.ObjectManager.Add(path, player.Position,Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
             });
         }
 
@@ -60,7 +59,12 @@ public class MainWindow : CustomWindow, IDisposable
         }
 
         ImGui.SameLine();
-        ImGui.Checkbox("Spawn with collision", ref collision);
+        
+        var collision = plugin.Configuration.SpawnWithCollision;
+        if (ImGui.Checkbox("Spawn with collision", ref collision))
+        {
+            plugin.Configuration.SpawnWithCollision = collision;
+        }
         
         Ui.CenteredTextWithLine("Groups", ImGui.GetColorU32(ImGuiCol.TabActive));
         

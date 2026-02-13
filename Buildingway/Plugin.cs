@@ -1,4 +1,5 @@
-﻿using Buildingway.Utils.Interop.Structs;
+﻿using Buildingway.Commands;
+using Buildingway.Utils.Interop.Structs;
 using Buildingway.Utils.Objects;
 using Dalamud.Game.Command;
 using Dalamud.IoC;
@@ -23,17 +24,18 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ISigScanner SigScanner { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
-    public static BgObjectFunctions BgObjectFunctions { get; private set; } = null!;
-    public static VfxFunctions VfxFunctions { get; private set; } = null!;
-    public static SharedGroupLayoutFunctions SharedGroupLayoutFunctions { get; private set; } = null!;
+    internal static BgObjectFunctions BgObjectFunctions { get; private set; } = null!;
+    internal static VfxFunctions VfxFunctions { get; private set; } = null!;
+    internal static SharedGroupLayoutFunctions SharedGroupLayoutFunctions { get; private set; } = null!;
 
-    public static ObjectManager ObjectManager { get; private set; } = null!;
-
-    private const string CommandName = "/build";
-    public Configuration Configuration { get; init; }
-    public readonly WindowSystem WindowSystem = new("Buildingway");
+    internal static CommandHandler CommandHandler { get; private set; } = null!;
+    internal static ObjectManager ObjectManager { get; private set; } = null!;
+    internal Configuration Configuration { get; init; }
+    internal readonly WindowSystem WindowSystem = new("Buildingway");
+    
     private ConfigWindow ConfigWindow { get; init; }
     private MainWindow MainWindow { get; init; }
+    private CatalogWindow CatalogWindow { get; init; }
 
     public Plugin()
     {
@@ -42,22 +44,20 @@ public sealed class Plugin : IDalamudPlugin
         SharedGroupLayoutFunctions = new SharedGroupLayoutFunctions();
         
         ObjectManager = new ObjectManager(ClientState, Framework);
+
+        CommandHandler = new CommandHandler(this);
         
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
         ConfigWindow = new ConfigWindow(this);
         MainWindow = new MainWindow(this);
+        CatalogWindow = new CatalogWindow(this);
 
         WindowSystem.AddWindow(ConfigWindow);
         WindowSystem.AddWindow(MainWindow);
-
-        CommandManager.AddHandler(CommandName, new CommandInfo(OnCommand)
-        {
-            HelpMessage = "Get building stuff!"
-        });
+        WindowSystem.AddWindow(CatalogWindow);
         
         PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
-        
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUi;
     }
@@ -73,18 +73,13 @@ public sealed class Plugin : IDalamudPlugin
 
         ConfigWindow.Dispose();
         MainWindow.Dispose();
+        CatalogWindow.Dispose();
 
-        CommandManager.RemoveHandler(CommandName);
-        
+        CommandHandler.Dispose();
         ObjectManager.Dispose();
-    }
-
-    private void OnCommand(string command, string args)
-    {
-        // In response to the slash command, toggle the display status of our main ui
-        MainWindow.Toggle();
     }
     
     public void ToggleConfigUi() => ConfigWindow.Toggle();
     public void ToggleMainUi() => MainWindow.Toggle();
+    public void ToggleCatalogUi() => CatalogWindow.Toggle();
 }
