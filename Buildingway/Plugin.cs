@@ -36,6 +36,7 @@ public sealed class Plugin : IDalamudPlugin
     private ConfigWindow ConfigWindow { get; init; }
     private MainWindow MainWindow { get; init; }
     private CatalogWindow CatalogWindow { get; init; }
+    private SavedPathsWindow SavedPathsWindow { get; init; }
 
     public Plugin()
     {
@@ -52,10 +53,12 @@ public sealed class Plugin : IDalamudPlugin
         ConfigWindow = new ConfigWindow(this);
         MainWindow = new MainWindow(this);
         CatalogWindow = new CatalogWindow(this);
+        SavedPathsWindow = new SavedPathsWindow(this);
 
         WindowSystem.AddWindow(ConfigWindow);
         WindowSystem.AddWindow(MainWindow);
         WindowSystem.AddWindow(CatalogWindow);
+        WindowSystem.AddWindow(SavedPathsWindow);
         
         PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
@@ -74,6 +77,7 @@ public sealed class Plugin : IDalamudPlugin
         ConfigWindow.Dispose();
         MainWindow.Dispose();
         CatalogWindow.Dispose();
+        SavedPathsWindow.Dispose();
 
         CommandHandler.Dispose();
         ObjectManager.Dispose();
@@ -82,4 +86,5 @@ public sealed class Plugin : IDalamudPlugin
     public void ToggleConfigUi() => ConfigWindow.Toggle();
     public void ToggleMainUi() => MainWindow.Toggle();
     public void ToggleCatalogUi() => CatalogWindow.Toggle();
+    public void ToggleSavedPathsUi() => SavedPathsWindow.Toggle();
 }

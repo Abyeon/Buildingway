@@ -19,9 +19,11 @@ public class CatalogWindow : CustomWindow, IDisposable
     private List<FurnitureCatalogCategory> categories = [];
     private readonly Dictionary<uint, List<HousingFurniture>> furnitureDict = new();
 
+    private List<HousingFurniture> allFurniture = [];
+
     private bool built; // if the furniture dict is built
 
-    public CatalogWindow(Plugin plugin) : base("Furniture Catalog##Buildingway")
+    public CatalogWindow(Plugin plugin) : base("Furniture Catalog##BuildingwayCatalog")
     {
         SizeConstraints = new WindowSizeConstraints
         {
@@ -47,13 +49,13 @@ public class CatalogWindow : CustomWindow, IDisposable
             {
                 var watch = Stopwatch.StartNew();
                 Plugin.Log.Debug("Building catalog...");
+                
+                allFurniture = furnitureSheet.Where(x => !x.Item.Value.Name.IsEmpty).OrderBy(x => x.Item.Value.Name.ToString()).ToList();
 
                 categories = Plugin.DataManager.GetExcelSheet<FurnitureCatalogCategory>()
                                    .GroupBy(x => x.Category)
                                    .Select(g => g.First())
                                    .OrderBy(x => x.Category.ToString()).ToList();
-
-                selectedCategory = categories.First();
 
                 // Build furniture dict
                 Parallel.ForEach(categories, row =>
@@ -80,7 +82,7 @@ public class CatalogWindow : CustomWindow, IDisposable
         }
     }
 
-    private FurnitureCatalogCategory selectedCategory;
+    private FurnitureCatalogCategory? selectedCategory = null;
     
     protected override void Render()
     {
@@ -96,6 +98,7 @@ public class CatalogWindow : CustomWindow, IDisposable
         if (ImGui.Checkbox("Spawn with collision", ref collision))
         {
             plugin.Configuration.SpawnWithCollision = collision;
+            plugin.Configuration.Save();
         }
         
         ImGui.Spacing();
@@ -110,14 +113,15 @@ public class CatalogWindow : CustomWindow, IDisposable
     {
         if (Plugin.ObjectTable.LocalPlayer == null) return;
         var player = Plugin.ObjectTable.LocalPlayer;
+
+        var list = selectedCategory == null ? allFurniture : furnitureDict[selectedCategory.Value.RowId];
         
-        var list = furnitureDict[selectedCategory.RowId];
         foreach (var furniture in list)
         {
             if (ImGui.Selectable(furniture.Item.Value.Name.ToString()))
             {
-                string model = furniture.ModelKey.ToString("0000");
-                string path = $"bgcommon/hou/indoor/general/{model}/asset/fun_b0_m{model}.sgb";
+                var model = furniture.ModelKey.ToString("0000");
+                var path = $"bgcommon/hou/indoor/general/{model}/asset/fun_b0_m{model}.sgb";
                 Plugin.ObjectManager.Add(path, player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
             }
         }
@@ -126,15 +130,23 @@ public class CatalogWindow : CustomWindow, IDisposable
     private void DrawCategories()
     {
         uint id = 0;
-        using var popup = ImRaii.Combo("Category", selectedCategory.Category.ToString());
+
+        var selected = selectedCategory == null ? "All" : selectedCategory.Value.Category.ToString();
+        using var popup = ImRaii.Combo("Category", selected);
 
         if (!popup.Success) return;
+        
+        ImGui.PushID(id++);
+        if (ImGui.Selectable("All", selectedCategory == null))
+        {
+            selectedCategory = null;
+        }
         
         foreach (var category in categories)
         {
             ImGui.PushID(id++);
             var name = category.Category.ToString();
-            if (ImGui.Selectable(name, name == selectedCategory.Category.ToString()))
+            if (ImGui.Selectable(name, name == selected))
             {
                 selectedCategory = category;
             }

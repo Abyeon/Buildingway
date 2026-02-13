@@ -39,6 +39,17 @@ public class MainWindow : CustomWindow, IDisposable
         }
         var player = Plugin.ObjectTable.LocalPlayer;
         
+        if (ImGui.Button("Furniture Catalog"))
+        {
+            plugin.ToggleCatalogUi();
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button("Saved Paths"))
+        {
+            plugin.ToggleSavedPathsUi();
+        }
+        
         ImGui.InputText("Path", ref path);
 
         if (ImGui.Button("Spawn"))
@@ -64,6 +75,7 @@ public class MainWindow : CustomWindow, IDisposable
         if (ImGui.Checkbox("Spawn with collision", ref collision))
         {
             plugin.Configuration.SpawnWithCollision = collision;
+            plugin.Configuration.Save();
         }
         
         Ui.CenteredTextWithLine("Groups", ImGui.GetColorU32(ImGuiCol.TabActive));
@@ -73,11 +85,16 @@ public class MainWindow : CustomWindow, IDisposable
         var id = 0;
         foreach (var group in Plugin.ObjectManager.Groups.ToList())
         {
-            using (var hoverable = new Ui.Hoverable(id.ToString(), padding: new Vector2(5f, 5f)))
+            using (new Ui.Hoverable(id.ToString(), padding: new Vector2(5f, 5f)))
             {
                 using var pushedId = ImRaii.PushId(id++);
-            
-                ImGui.Text(group.Path);
+
+                if (!plugin.Configuration.PathDictionary.TryGetValue(group.Path, out var groupPath))
+                {
+                    groupPath = group.Path;
+                }
+                
+                ImGui.Text(groupPath);
                 if (ImGuiComponents.IconButton("###GroupReposition", FontAwesomeIcon.ArrowsToDot))
                 {
                     group.Position = player.Position;
@@ -99,6 +116,16 @@ public class MainWindow : CustomWindow, IDisposable
                 }
                 
                 ImGui.SameLine();
+                if (ImGuiComponents.IconButton("###GroupFavorite", FontAwesomeIcon.Star))
+                {
+                    ImGui.OpenPopup("###GroupFavoritePopup");
+                }
+                if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+                {
+                    ImGui.SetTooltip("Give this path a nickname.");
+                }
+                
+                ImGui.SameLine();
                 using (_ = ImRaii.Disabled(!ctrl))
                 {
                     if (ImGuiComponents.IconButton("###GroupErase", FontAwesomeIcon.Eraser))
@@ -111,6 +138,14 @@ public class MainWindow : CustomWindow, IDisposable
                     {
                         ImGui.SetTooltip("Ctrl + Click to erase this object.");
                     }
+                }
+
+                var nickname = "";
+                if (Ui.AddTextConfirmationPopup("###GroupFavoritePopup", "Give this path a nickname!", ref nickname))
+                {
+                    if (nickname.Length == 0) return;
+                    plugin.Configuration.PathDictionary[group.Path] = nickname;
+                    plugin.Configuration.Save();
                 }
 
                 ImGui.SameLine();
@@ -137,7 +172,7 @@ public class MainWindow : CustomWindow, IDisposable
                     group.UpdateTransform();
                 }
             }
-            
+
             ImGui.Spacing();
         }
     }
