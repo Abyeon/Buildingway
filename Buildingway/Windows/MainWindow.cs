@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using Buildingway.Utils;
@@ -6,6 +7,7 @@ using Buildingway.Utils.Interface;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
+using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility.Raii;
 using FFXIVClientStructs.FFXIV.Common.Component.BGCollision;
 
@@ -14,6 +16,8 @@ namespace Buildingway.Windows;
 public class MainWindow : CustomWindow, IDisposable
 {
     private readonly Plugin plugin;
+    
+    private FileDialogManager fileDialogManager;
     
     public MainWindow(Plugin plugin) : base("Buildingway##MakesTheBestHouses", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
@@ -24,20 +28,44 @@ public class MainWindow : CustomWindow, IDisposable
         };
         
         this.plugin = plugin;
+        fileDialogManager = new FileDialogManager();
     }
 
     public void Dispose() { }
 
     private string path = "bgcommon/hou/outdoor/general/0332/asset/gar_b0_m0332.sgb";
-
+    
     protected override void Render()
-    {
+    { 
+        fileDialogManager.Draw();
+        
         if (Plugin.ObjectTable.LocalPlayer == null)
         {
             ImGui.TextUnformatted("Player is null!");
             return;
         }
         var player = Plugin.ObjectTable.LocalPlayer;
+        
+        if (ImGui.Button("Save Layout"))
+        {
+            var json = Serializer.SerializeCurrent();
+            fileDialogManager.SaveFileDialog("Save Layout File", ".json", "layout", ".json", (success, pathToFile) =>
+            {
+                if (!success) return;
+                File.WriteAllText(pathToFile, json);
+            });
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button("Load Layout"))
+        {
+            fileDialogManager.OpenFileDialog("Open Layout File", ".json", (success, pathToFile) =>
+            {
+                var json = File.ReadAllText(pathToFile);
+                var layout = Serializer.Deserialize(json);
+                Plugin.ObjectManager.LoadLayout(layout);
+            });
+        }
         
         if (ImGui.Button("Furniture Catalog"))
         {
@@ -87,16 +115,17 @@ public class MainWindow : CustomWindow, IDisposable
         var id = 0;
         foreach (var group in Plugin.ObjectManager.Groups.ToList())
         {
-            using (new Ui.Hoverable(id.ToString(), padding: new Vector2(5f, 5f)))
+            using var pushedId = ImRaii.PushId(id++);
+            
+            if (!plugin.Configuration.PathDictionary.TryGetValue(group.Path, out var groupPath))
             {
-                using var pushedId = ImRaii.PushId(id++);
+                groupPath = group.Path;
+            }
 
-                if (!plugin.Configuration.PathDictionary.TryGetValue(group.Path, out var groupPath))
-                {
-                    groupPath = group.Path;
-                }
-                
-                ImGui.Text(groupPath);
+            var distance = Vector3.Distance(group.Transform.Position, player.Position);
+            if (!ImGui.CollapsingHeader($"[{distance:F1}] - {groupPath}###{groupPath}{id++}")) continue;
+            using (new Ui.Hoverable(id.ToString(), 0f, margin: new Vector2(0f, 0f), padding: new Vector2(5f, 5f), highlight: true))
+            {
                 if (ImGuiComponents.IconButton("###GroupReposition", FontAwesomeIcon.ArrowsToDot))
                 {
                     group.Transform.Position = player.Position;

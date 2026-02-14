@@ -10,6 +10,7 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
+using Lumina.Extensions;
 
 namespace Buildingway.Windows;
 
@@ -17,10 +18,11 @@ public class CatalogWindow : CustomWindow, IDisposable
 {
     private readonly Plugin plugin;
 
-    private List<FurnitureCatalogCategory> categories = [];
-    private readonly Dictionary<uint, List<HousingFurniture>> furnitureDict = new();
+    private ExcelSheet<FurnitureCatalogCategory> indoorCatagories;
+    private ExcelSheet<YardCatalogCategory> outdoorCatagories;
 
-    private List<HousingFurniture> allFurniture = [];
+    private List<Furnishing> indoorFurniture  = [];
+    private List<Furnishing> outdoorFurniture = [];
 
     private bool built; // if the furniture dict is built
 
@@ -33,46 +35,72 @@ public class CatalogWindow : CustomWindow, IDisposable
         };
 
         this.plugin = plugin;
+        
+        indoorCatagories = Plugin.DataManager.GetExcelSheet<FurnitureCatalogCategory>();
+        outdoorCatagories = Plugin.DataManager.GetExcelSheet<YardCatalogCategory>();
 
         built = false;
-
-        var furnitureSheet = Plugin.DataManager.GetExcelSheet<HousingFurniture>();
-        var catalogItemSheet = Plugin.DataManager.GetExcelSheet<FurnitureCatalogItemList>();
-
-        BuildCategories(furnitureSheet, catalogItemSheet);
+        BuildCategories();
     }
 
-    private async void BuildCategories(ExcelSheet<HousingFurniture> furnitureSheet, ExcelSheet<FurnitureCatalogItemList> catalogItemSheet)
+    private async void BuildCategories()
     {
+        var indoorSheet = Plugin.DataManager.GetExcelSheet<HousingFurniture>();
+        var outdoorSheet = Plugin.DataManager.GetExcelSheet<HousingYardObject>();
+                
+        var indoorCatalog = Plugin.DataManager.GetExcelSheet<FurnitureCatalogItemList>();
+        var outdoorCatalog = Plugin.DataManager.GetExcelSheet<YardCatalogItemList>();
+        
         try
         {
             await Task.Run(() =>
             {
                 var watch = Stopwatch.StartNew();
                 Plugin.Log.Debug("Building catalog...");
+
+                indoorFurniture = [];
                 
-                allFurniture = furnitureSheet.Where(x => !x.Item.Value.Name.IsEmpty).OrderBy(x => x.Item.Value.Name.ToString()).ToList();
-
-                categories = Plugin.DataManager.GetExcelSheet<FurnitureCatalogCategory>()
-                                   .GroupBy(x => x.Category)
-                                   .Select(g => g.First())
-                                   .OrderBy(x => x.Category.ToString()).ToList();
-
-                // Build furniture dict
-                Parallel.ForEach(categories, row =>
+                foreach (var furniture in indoorSheet)
                 {
-                    var itemRows = catalogItemSheet
-                                   .Where(x => x.Category.Value.Category.ToString() == row.Category.ToString())
-                                   .Select(x => x.Item.RowId);
+                    if (furniture.Item.Value.Name.IsEmpty) continue;
+
+                    var row = indoorCatalog.FirstOrNull(x => x.Item.RowId == furniture.Item.RowId);
+                    if (row == null) continue;
                     
-                    var list = furnitureSheet.Where(x => itemRows.Contains(x.Item.RowId) && !x.Item.Value.Name.IsEmpty)
-                                             .OrderBy(x => x.Item.Value.Name.ToString()).ToList();
+                    var category = row.Value.Category.RowId;
                     
-                    furnitureDict[row.RowId] = list;
-                });
+                    indoorFurniture.Add(new Furnishing
+                    {
+                        Name = furniture.Item.Value.Name.ToString(),
+                        Model = furniture.ModelKey,
+                        Category = category,
+                        Indoors = true
+                    });
+                }
+
+                outdoorFurniture = [];
+                
+                foreach (var furniture in outdoorSheet)
+                {
+                    if (furniture.Item.Value.Name.IsEmpty) continue;
+                    
+                    var row = outdoorCatalog.FirstOrNull(x => x.Item.RowId == furniture.Item.RowId);
+                    if (row == null) continue;
+                    
+                    var category = row.Value.Category.RowId;
+                    
+                    outdoorFurniture.Add(new Furnishing
+                    {
+                        Name = furniture.Item.Value.Name.ToString(),
+                        Model = furniture.ModelKey,
+                        Category = category,
+                        Indoors = false
+                    });
+                }
+
+                outdoorFurniture = outdoorFurniture.OrderBy(x => x.Name).ToList();
                 
                 built = true;
-
                 watch.Stop();
                 Plugin.Log.Debug($"Built catalog after {watch.ElapsedMilliseconds} ms");
             });
@@ -83,7 +111,8 @@ public class CatalogWindow : CustomWindow, IDisposable
         }
     }
 
-    private FurnitureCatalogCategory? selectedCategory = null;
+    private bool indoors = true;
+    private FurnitureCatalogCategory? selectedCategory;
     private string query = "";
     
     protected override void Render()
@@ -92,6 +121,12 @@ public class CatalogWindow : CustomWindow, IDisposable
         {
             ImGui.Text("Currently building catalog, please wait!");
             return;
+        }
+
+        if (ImGui.Button(indoors ? "Show Outdoors" : "Show Indoors"))
+        {
+            indoors = !indoors;
+            selectedCategory = null;
         }
         
         ImGui.InputText("Search", ref query);
@@ -117,19 +152,36 @@ public class CatalogWindow : CustomWindow, IDisposable
         if (Plugin.ObjectTable.LocalPlayer == null) return;
         var player = Plugin.ObjectTable.LocalPlayer;
 
-        var list = selectedCategory == null ? allFurniture : furnitureDict[selectedCategory.Value.RowId];
-        
-        if (query != "") list = list.Where(x => x.Item.Value.Name.ToString().Contains(query, StringComparison.InvariantCultureIgnoreCase)).ToList();
-        
+        var list = indoors ? indoorFurniture : outdoorFurniture;
+        if (query != "") list = list.Where(x => x.Name.Contains(query, StringComparison.InvariantCultureIgnoreCase)).ToList();
+
+        using var table = ImRaii.Table("##ItemTable", 3, ImGuiTableFlags.SizingFixedFit);
+        if (!table.Success) return;
+
+        uint id = 0;
         foreach (var furniture in list)
         {
-            if (ImGui.Selectable(furniture.Item.Value.Name.ToString()))
+            ImGui.PushID(id++);
+            ImGui.TableNextRow();
+            
+            ImGui.TableNextColumn();
+            if (ImGui.Selectable(furniture.Name, flags: ImGuiSelectableFlags.SpanAllColumns))
             {
-                var model = furniture.ModelKey.ToString("0000");
-                var path = $"bgcommon/hou/indoor/general/{model}/asset/fun_b0_m{model}.sgb";
-                Plugin.ObjectManager.Add(path, player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
+                Plugin.ObjectManager.Add(furniture.GetPath(), player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
             }
+            ImGui.TableNextColumn();
+            ImGui.Text(furniture.GetPath());
+            // ImGui.TableNextColumn();
+            // ImGui.Text(furniture.Indoors ? "indoor" : "outdoor" );
         }
+
+        // foreach (var furniture in list)
+        // {
+        //     if (ImGui.Selectable(furniture.Name))
+        //     {
+        //         Plugin.ObjectManager.Add(furniture.GetPath(), player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
+        //     }
+        // }
     }
 
     private void DrawCategories()
@@ -146,17 +198,48 @@ public class CatalogWindow : CustomWindow, IDisposable
         {
             selectedCategory = null;
         }
-        
-        foreach (var category in categories)
+
+        if (indoors)
         {
-            ImGui.PushID(id++);
-            var name = category.Category.ToString();
-            if (ImGui.Selectable(name, name == selected))
+            foreach (var category in indoorCatagories)
             {
-                selectedCategory = category;
+                ImGui.PushID(id++);
+                var name = category.Category.ToString();
+                if (ImGui.Selectable(name, name == selected))
+                {
+                    selectedCategory = category;
+                }
             }
         }
+        // else
+        // {
+        //     foreach (var category in outdoorCatagories)
+        //     {
+        //         ImGui.PushID(id++);
+        //         var name = category.Category.ToString();
+        //         if (ImGui.Selectable(name, name == selected))
+        //         {
+        //             selectedCategory = category;
+        //         }
+        //     }
+        // }
     }
 
     public void Dispose() { }
+}
+
+public struct Furnishing
+{
+    public string Name;
+    public uint Model;
+    public uint Category;
+    public bool Indoors;
+
+    public string GetPath()
+    {
+        var model = Model.ToString("0000");
+        var location = Indoors ? "indoor" : "outdoor";
+        var funGar = Indoors ? "fun" : "gar";
+        return $"bgcommon/hou/{location}/general/{model}/asset/{funGar}_b0_m{model}.sgb";
+    }
 }

@@ -31,8 +31,19 @@ public class ObjectManager : IDisposable
         Framework.Update += FrameworkOnUpdate;
     }
 
+    public bool IsLoading = false;
+    private Queue<Placement> placementQueue = new();
+
     private void FrameworkOnUpdate(IFramework framework)
     {
+        if (IsLoading)
+        {
+            var placement = placementQueue.Dequeue();
+            Add(placement.Path, placement.Position, placement.Rotation, placement.Scale, placement.Collision);
+            
+            if (placementQueue.Count == 0) IsLoading = false;
+        }
+        
         foreach (var item in Vfx.ToList())
         {
             if (!item.Loop && DateTime.UtcNow >= item.Expires)
@@ -95,6 +106,13 @@ public class ObjectManager : IDisposable
     public void Add(BaseVfx vfx)
     {
         Vfx.Add(vfx);
+    }
+    
+    public void LoadLayout(Layout layout)
+    {
+        Clear();
+        placementQueue = new Queue<Placement>(layout.Placements);
+        IsLoading = true;
     }
 
     /// <summary>

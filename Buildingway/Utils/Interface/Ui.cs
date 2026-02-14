@@ -230,6 +230,7 @@ public static class Ui
         public Vector2 Padding { get; init; }
         public float Rounding { get; init; }
         public bool Highlight { get; init; }
+        public ImGuiSelectableFlags Flags { get; init; }
         
         public string Id { get; private set; }
 
@@ -246,13 +247,14 @@ public static class Ui
             Begin();
         }
         
-        public Hoverable(string id, float rounding = 5f, Vector2 margin = default(Vector2), Vector2 padding = default(Vector2), bool highlight = false)
+        public Hoverable(string id, float rounding = 5f, Vector2 margin = default(Vector2), Vector2 padding = default(Vector2), bool highlight = false, ImGuiSelectableFlags flags = ImGuiSelectableFlags.None)
         {
             Id = id;
             Margin = margin;
             Padding = padding;
             Rounding = rounding;
             Highlight = highlight;
+            Flags = flags;
             
             Begin();
         }
@@ -283,7 +285,7 @@ public static class Ui
 
             using (ImRaii.Disabled())
             {
-                ImGui.Selectable($"###{Id}", false, ImGuiSelectableFlags.None, EndPos - StartPos);
+                ImGui.Selectable($"###{Id}", false, Flags, EndPos - StartPos);
                 //ImGui.Button($"###{Id}", EndPos - StartPos);
             }
 

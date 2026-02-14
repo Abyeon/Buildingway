@@ -87,6 +87,7 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandHandler.Dispose();
         ObjectManager.Dispose();
+        VfxFunctions.Dispose();
     }
     
     public void ToggleConfigUi() => ConfigWindow.Toggle();
