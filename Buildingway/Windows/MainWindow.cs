@@ -61,34 +61,39 @@ public class MainWindow : CustomWindow, IDisposable
         {
             fileDialogManager.OpenFileDialog("Open Layout File", ".json", (success, pathToFile) =>
             {
+                if (!success) return;
                 var json = File.ReadAllText(pathToFile);
                 var layout = Serializer.Deserialize(json);
+                
+                plugin.Overlay.SelectedGroup = null;
                 Plugin.ObjectManager.LoadLayout(layout);
             });
         }
         
-        if (ImGui.Button("Furniture Catalog"))
-        {
-            plugin.ToggleCatalogUi();
-        }
+        if (ImGui.Button("Furniture Catalog")) plugin.ToggleCatalogUi();
 
         ImGui.SameLine();
-        if (ImGui.Button("Saved Paths"))
-        {
-            plugin.ToggleSavedPathsUi();
-        }
+        if (ImGui.Button("Saved Paths")) plugin.ToggleSavedPathsUi();
         
         ImGui.InputText("Path", ref path);
 
+        ImGui.SameLine();
         if (ImGui.Button("Spawn"))
         {
             Plugin.Framework.RunOnFrameworkThread(() =>
             {
                 Plugin.ObjectManager.Add(path, player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
             });
+            
+            plugin.Overlay.SelectedGroup = null;
         }
 
-        ImGui.SameLine();
+        if (plugin.Overlay.SelectedGroup != null)
+        {
+            if (ImGui.Button("Stop Editing")) plugin.Overlay.SelectedGroup = null;
+            ImGui.SameLine();
+        }
+        
         if (ImGui.Button("Clear All"))
         {
             Plugin.Framework.RunOnFrameworkThread(() =>
@@ -100,7 +105,6 @@ public class MainWindow : CustomWindow, IDisposable
         }
 
         ImGui.SameLine();
-        
         var collision = plugin.Configuration.SpawnWithCollision;
         if (ImGui.Checkbox("Spawn with collision", ref collision))
         {
