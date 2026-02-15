@@ -23,6 +23,7 @@ public class CatalogWindow : CustomWindow, IDisposable
 
     private List<Furnishing> indoorFurniture  = [];
     private List<Furnishing> outdoorFurniture = [];
+    private List<Furnishing> currentSearch = [];
 
     private bool built; // if the furniture dict is built
 
@@ -99,6 +100,7 @@ public class CatalogWindow : CustomWindow, IDisposable
                 }
 
                 outdoorFurniture = outdoorFurniture.OrderBy(x => x.Name).ToList();
+                UpdateSearch();
                 
                 built = true;
                 watch.Stop();
@@ -112,8 +114,16 @@ public class CatalogWindow : CustomWindow, IDisposable
     }
 
     private bool indoors = true;
-    private FurnitureCatalogCategory? selectedCategory;
+    private uint? selectedCategory;
     private string query = "";
+
+    private void UpdateSearch()
+    {
+        IEnumerable<Furnishing> list = indoors ? indoorFurniture : outdoorFurniture;
+        if (selectedCategory != null) list = list.Where(x => x.Category == selectedCategory);
+        if (query != "") list = list.Where(x => x.Name.Contains(query, StringComparison.InvariantCultureIgnoreCase));
+        currentSearch = list.ToList();
+    }
     
     protected override void Render()
     {
@@ -127,9 +137,14 @@ public class CatalogWindow : CustomWindow, IDisposable
         {
             indoors = !indoors;
             selectedCategory = null;
+            UpdateSearch();
+        }
+
+        if (ImGui.InputText("Search", ref query))
+        {
+            UpdateSearch();
         }
         
-        ImGui.InputText("Search", ref query);
         DrawCategories();
         
         var collision = plugin.Configuration.SpawnWithCollision;
@@ -152,14 +167,11 @@ public class CatalogWindow : CustomWindow, IDisposable
         if (Plugin.ObjectTable.LocalPlayer == null) return;
         var player = Plugin.ObjectTable.LocalPlayer;
 
-        var list = indoors ? indoorFurniture : outdoorFurniture;
-        if (query != "") list = list.Where(x => x.Name.Contains(query, StringComparison.InvariantCultureIgnoreCase)).ToList();
-
-        using var table = ImRaii.Table("##ItemTable", 3, ImGuiTableFlags.SizingFixedFit);
+        using var table = ImRaii.Table("##ItemTable", 2, ImGuiTableFlags.SizingFixedFit);
         if (!table.Success) return;
 
         uint id = 0;
-        foreach (var furniture in list)
+        foreach (var furniture in currentSearch)
         {
             ImGui.PushID(id++);
             ImGui.TableNextRow();
@@ -171,25 +183,20 @@ public class CatalogWindow : CustomWindow, IDisposable
             }
             ImGui.TableNextColumn();
             ImGui.Text(furniture.GetPath());
-            // ImGui.TableNextColumn();
-            // ImGui.Text(furniture.Indoors ? "indoor" : "outdoor" );
         }
-
-        // foreach (var furniture in list)
-        // {
-        //     if (ImGui.Selectable(furniture.Name))
-        //     {
-        //         Plugin.ObjectManager.Add(furniture.GetPath(), player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
-        //     }
-        // }
     }
 
     private void DrawCategories()
     {
         uint id = 0;
 
-        var selected = selectedCategory == null ? "All" : selectedCategory.Value.Category.ToString();
-        using var popup = ImRaii.Combo("Category", selected);
+        var categoryName = "All";
+        if (selectedCategory != null)
+        {
+            categoryName = indoors ? indoorCatagories.GetRow(selectedCategory.Value).Category.ToString() : outdoorCatagories.GetRow(selectedCategory.Value).Category.ToString();
+        }
+        
+        using var popup = ImRaii.Combo("Category", categoryName);
 
         if (!popup.Success) return;
         
@@ -197,6 +204,7 @@ public class CatalogWindow : CustomWindow, IDisposable
         if (ImGui.Selectable("All", selectedCategory == null))
         {
             selectedCategory = null;
+            UpdateSearch();
         }
 
         if (indoors)
@@ -205,24 +213,26 @@ public class CatalogWindow : CustomWindow, IDisposable
             {
                 ImGui.PushID(id++);
                 var name = category.Category.ToString();
-                if (ImGui.Selectable(name, name == selected))
+                if (ImGui.Selectable(name, name == categoryName))
                 {
-                    selectedCategory = category;
+                    selectedCategory = category.RowId;
+                    UpdateSearch();
                 }
             }
         }
-        // else
-        // {
-        //     foreach (var category in outdoorCatagories)
-        //     {
-        //         ImGui.PushID(id++);
-        //         var name = category.Category.ToString();
-        //         if (ImGui.Selectable(name, name == selected))
-        //         {
-        //             selectedCategory = category;
-        //         }
-        //     }
-        // }
+        else
+        {
+            foreach (var category in outdoorCatagories)
+            {
+                ImGui.PushID(id++);
+                var name = category.Category.ToString();
+                if (ImGui.Selectable(name, name == categoryName))
+                {
+                    selectedCategory = category.RowId;
+                    UpdateSearch();
+                }
+            }
+        }
     }
 
     public void Dispose() { }

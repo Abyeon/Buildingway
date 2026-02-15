@@ -79,7 +79,7 @@ public class ObjectManager : IDisposable
         switch (ext)
         {
             case ".avfx":
-                Add(new StaticVfx(path,  pos, sca, 0f));
+                Add(new StaticVfx(path,  pos, sca, 0f, loop: true));
                 break;
             case ".mdl":
                 Add(new Model(path, pos, rot, sca));
