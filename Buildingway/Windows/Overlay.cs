@@ -43,16 +43,19 @@ public class Overlay : Window, IDisposable
         var ctrl = ImGui.GetIO().KeyCtrl;
         var shift = ImGui.GetIO().KeyShift;
 
-        if (ctrl)
+        if (!ImGuizmo.IsUsing())
         {
-            DrawExtensions.Operation = ImGuizmoOperation.Scale;
-        } else if (shift)
-        {
-            DrawExtensions.Operation = ImGuizmoOperation.Rotate;
-        }
-        else
-        {
-            DrawExtensions.Operation = ImGuizmoOperation.Translate;
+            if (ctrl)
+            {
+                DrawExtensions.Operation = ImGuizmoOperation.Scale;
+            } else if (shift)
+            {
+                DrawExtensions.Operation = ImGuizmoOperation.Rotate;
+            }
+            else
+            {
+                DrawExtensions.Operation = ImGuizmoOperation.Translate;
+            }
         }
         
         var transform = SelectedTransform;
