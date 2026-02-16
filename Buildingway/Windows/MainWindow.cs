@@ -183,6 +183,7 @@ public class MainWindow : CustomWindow, IDisposable
                 }
                 
                 DrawTransform(ref model.Transform);
+                model.DrawInfo();
             }
 
             ImGui.Spacing();

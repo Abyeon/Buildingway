@@ -1,5 +1,6 @@
 ﻿using System;
 using Buildingway.Utils.Interop.Structs;
+using Dalamud.Bindings.ImGui;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using FFXIVClientStructs.FFXIV.Common.Math;
 
@@ -70,6 +71,18 @@ public unsafe class Model : IDisposable
         {
             var ex = (BgObjectEx*)BgObject;
             ex->UpdateCulling();
+        }
+    }
+
+    public void DrawInfo()
+    {
+        var ex = (BgObjectEx*)BgObject;
+        var alpha = ex->Alpha;
+        
+        if (ImGui.SliderByte("Alpha", ref alpha, 0, 255))
+        {
+            ex->Alpha = alpha;
+            UpdateRender();
         }
     }
 
