@@ -33,6 +33,7 @@ public class ObjectManager : IDisposable
 
     public bool IsLoading = false;
     private Queue<Placement> placementQueue = new();
+    private readonly List<Model> dirtyModels = [];
 
     private void FrameworkOnUpdate(IFramework framework)
     {
@@ -42,6 +43,18 @@ public class ObjectManager : IDisposable
             Add(placement.Path, placement.Position, placement.Rotation, placement.Scale, placement.Collision);
             
             if (placementQueue.Count == 0) IsLoading = false;
+        }
+
+        foreach (var model in dirtyModels.ToList())
+        {
+            if (model.Dirty)
+            {
+                model.TryFixCulling();
+            }
+            else
+            {
+                dirtyModels.Remove(model);
+            }
         }
         
         foreach (var item in Vfx.ToList())
@@ -96,6 +109,7 @@ public class ObjectManager : IDisposable
     public void Add(Model model)
     {
         Models.Add(model);
+        dirtyModels.Add(model);
     }
     
     public void Add(Group group)
@@ -122,6 +136,7 @@ public class ObjectManager : IDisposable
     {
         foreach (var model in Models) model.Dispose();
         Models.Clear();
+        dirtyModels.Clear();
     }
 
     /// <summary>
@@ -151,6 +166,7 @@ public class ObjectManager : IDisposable
     /// </summary>
     public void Clear()
     {
+        placementQueue.Clear();
         ClearModels();
         ClearGroups();
         ClearVfx();

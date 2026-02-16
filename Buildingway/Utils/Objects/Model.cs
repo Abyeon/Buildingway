@@ -10,6 +10,7 @@ public unsafe class Model : IDisposable
     public readonly BgObject* BgObject;
     public string Path;
     public Transform Transform;
+    public bool Dirty = true;
 
     public Model(string path, Vector3? position = null, Quaternion? rotation = null, Vector3? scale = null)
     {
@@ -19,19 +20,21 @@ public unsafe class Model : IDisposable
         Path = path;
         BgObject = Plugin.BgObjectFunctions.BgObjectCreate(path);
         
-        Transform.Position = position ?? Vector3.Zero;
-        Transform.Rotation = rotation ?? Quaternion.Identity;
-        Transform.Scale = scale ?? Vector3.One;
+        Transform = new Transform()
+        {
+            Position = position ?? Vector3.Zero,
+            Rotation = rotation ?? Quaternion.Identity,
+            Scale = scale ?? Vector3.One
+        };
+        
+        Transform.OnUpdate += UpdateTransform; 
+        UpdateTransform();
 
         if (BgObject->ModelResourceHandle->LoadState == 7)
         {
             var ex = (BgObjectEx*)BgObject;
             ex->UpdateCulling();
-            UpdateTransform();
-        }
-        else
-        {
-            Plugin.Framework.RunOnTick(TryFixCulling);
+            Dirty = false;
         }
     }
 
@@ -42,11 +45,13 @@ public unsafe class Model : IDisposable
         UpdateRender();
     }
 
-    public void UpdateTransform()
-    {
+    private void UpdateTransform()
+    { 
+        var ex = (BgObjectEx*)BgObject;
         BgObject->Position = Transform.Position;
         BgObject->Rotation = Transform.Rotation;
         BgObject->Scale = Transform.Scale;
+        TryFixCulling();
     }
 
     public void UpdateRender()
@@ -56,7 +61,7 @@ public unsafe class Model : IDisposable
         ex->UpdateRender();
     }
 
-    private void TryFixCulling()
+    public void TryFixCulling()
     {
         Plugin.Log.Verbose($"Trying to fix BgObject culling {Path}");
         if (BgObject == null) return;
@@ -65,14 +70,13 @@ public unsafe class Model : IDisposable
         {
             var ex = (BgObjectEx*)BgObject;
             ex->UpdateCulling();
-            return;
         }
-        
-        Plugin.Framework.RunOnTick(TryFixCulling);
     }
 
     public void Dispose()
     {
+        Dirty = false;
+        
         Plugin.Log.Verbose($"Disposing BgObject {Path}");
         Plugin.Framework.RunOnFrameworkThread(() =>
         {
@@ -82,5 +86,7 @@ public unsafe class Model : IDisposable
             ex->CleanupRender();
             ex->Dtor();
         });
+        
+        Transform.OnUpdate -= UpdateTransform;
     }
 }

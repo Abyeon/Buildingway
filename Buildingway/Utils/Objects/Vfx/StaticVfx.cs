@@ -1,4 +1,5 @@
 ﻿using System;
+using Dalamud.Bindings.ImGui;
 using FFXIVClientStructs.FFXIV.Common.Math;
 
 namespace Buildingway.Utils.Objects.Vfx;
@@ -8,9 +9,7 @@ namespace Buildingway.Utils.Objects.Vfx;
 /// </summary>
 public unsafe class StaticVfx : BaseVfx
 {
-    public Vector3 Position;
-    public Vector3 Scale;
-    public Quaternion Rotation;
+    public Transform Transform;
 
     public StaticVfx(string path, Vector3 position, Quaternion rotation, Vector3 scale, TimeSpan? expiration = null, bool loop = false)
     {
@@ -18,9 +17,15 @@ public unsafe class StaticVfx : BaseVfx
         if (Plugin.VfxFunctions == null) throw new NullReferenceException("Vfx functions are not initialized");
 
         Path = path;
-        Position = position;
-        Scale = scale;
-        Rotation = rotation;
+        Transform = new Transform()
+        {
+            Position = position,
+            Rotation = rotation,
+            Scale = scale
+        };
+        
+        Transform.OnUpdate += UpdateTransform;
+        
         Loop = loop;
         Expires = expiration.HasValue ? DateTime.UtcNow + expiration.Value : DateTime.UtcNow + TimeSpan.FromSeconds(5);
         
@@ -32,15 +37,20 @@ public unsafe class StaticVfx : BaseVfx
             if (!IsValid)
                 throw new Exception("Vfx pointer is null");
                 
-            Vfx->Position = Position;
-            Vfx->Scale = Scale;
-            Vfx->Rotation = Rotation;
-            Vfx->Flags |= 0x2;
+            UpdateTransform();
         }
         catch (Exception e)
         {
             Plugin.Log.Error(e, "Failed to create Vfx");
         }
+    }
+
+    private void UpdateTransform()
+    {
+        Vfx->Position = Transform.Position;
+        Vfx->Scale = Transform.Scale;
+        Vfx->Rotation = Transform.Rotation;
+        Vfx->Flags |= 0x2;
     }
 
     public StaticVfx(string path, Vector3 position, Vector3 scale, float rotation, TimeSpan? expiration = null, bool loop = false)
@@ -58,10 +68,7 @@ public unsafe class StaticVfx : BaseVfx
             if (!IsValid)
                 throw new Exception("Vfx pointer is null");
                 
-            Vfx->Position = Position;
-            Vfx->Scale = Scale;
-            Vfx->Rotation = Rotation;
-            Vfx->Flags |= 0x2;
+            UpdateTransform();
         }
         catch (Exception e)
         {

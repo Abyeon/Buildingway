@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Numerics;
+using Buildingway.Utils;
 using Buildingway.Utils.Interface;
 using Buildingway.Utils.Objects;
 using Dalamud.Bindings.ImGui;
@@ -28,7 +29,7 @@ public class Overlay : Window, IDisposable
         Plugin = plugin;
     }
 
-    public Group? SelectedGroup = null;
+    public Transform? SelectedTransform = null;
     
     public override void Draw()
     {
@@ -37,7 +38,7 @@ public class Overlay : Window, IDisposable
         ImGuiHelpers.SetWindowPosRelativeMainViewport("###BuildingwayOverlay", new Vector2(0, 0));
         ImGui.SetWindowSize(io.DisplaySize);
         
-        if (SelectedGroup == null) return;
+        if (SelectedTransform == null) return;
         
         var ctrl = ImGui.GetIO().KeyCtrl;
         var shift = ImGui.GetIO().KeyShift;
@@ -54,11 +55,11 @@ public class Overlay : Window, IDisposable
             DrawExtensions.Operation = ImGuizmoOperation.Translate;
         }
         
-        var transform = SelectedGroup.Transform;
+        var transform = SelectedTransform;
         if (DrawExtensions.Manipulate(ref transform, 0.05f, "BuildingwayManipulate"))
         {
-            SelectedGroup.Transform = transform;
-            SelectedGroup.UpdateTransform();
+            SelectedTransform = transform;
+            SelectedTransform.Update();
         }
     }
 

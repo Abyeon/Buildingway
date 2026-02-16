@@ -12,10 +12,6 @@ public unsafe class Group : IDisposable
     
     public Transform Transform;
     
-    // public Vector3 Position;
-    // public Quaternion Rotation;
-    // public Vector3 Scale;
-
     public bool Collide;
 
     public Group(string path, Vector3? position = null, Quaternion? rotation = null, Vector3? scale = null, bool collide = true)
@@ -25,10 +21,16 @@ public unsafe class Group : IDisposable
         
         Plugin.Log.Verbose($"Attempting to create group {path} @ {((IntPtr)Data):x8}");
         Path = path;
+
+        Transform = new Transform()
+        {
+            Position = position ?? Vector3.Zero,
+            Rotation = rotation ?? Quaternion.Identity,
+            Scale = scale ?? Vector3.One
+        };
+
+        Transform.OnUpdate += UpdateTransform;
         
-        Transform.Position = position ?? Vector3.Zero;
-        Transform.Rotation = rotation ?? Quaternion.Identity;
-        Transform.Scale = scale ?? Vector3.One;
         Collide = collide;
         
         Plugin.Framework.RunOnTick(SetModel);
@@ -38,13 +40,6 @@ public unsafe class Group : IDisposable
     {
         Plugin.SharedGroupLayoutFunctions.LoadSgb(Data, Path);
         
-        // var t = Data->GetTransformImpl();
-        // t->Translation = Position;
-        // t->Rotation = Rotation;
-        // t->Scale = Scale;
-        //
-        // Data->SetTransformImpl(t);
-        // Data->SetColliderActive(Collide);
         UpdateTransform();
 
         var first = Data->Instances.Instances.First;
@@ -56,7 +51,7 @@ public unsafe class Group : IDisposable
         }
     }
 
-    public void UpdateTransform()
+    private void UpdateTransform()
     {
         var t = Data->GetTransformImpl();
         t->Translation = Transform.Position;
@@ -65,6 +60,11 @@ public unsafe class Group : IDisposable
 
         Data->SetTransformImpl(t);
         Data->SetColliderActive(Collide);
+    }
+
+    public void DrawInfo()
+    {
+        
     }
     
     public void Dispose()
