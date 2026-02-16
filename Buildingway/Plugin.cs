@@ -7,6 +7,8 @@ using Dalamud.Plugin;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using Buildingway.Windows;
+using ECommons;
+using ECommons.Reflection;
 
 namespace Buildingway;
 
@@ -39,13 +41,27 @@ public sealed class Plugin : IDalamudPlugin
     private SavedPathsWindow SavedPathsWindow { get; init; }
     internal Overlay Overlay { get; init; }
 
+    internal IDalamudPlugin Hyperborea = null!;
+
+    internal bool Enabled { get; set; } = false;
+
     public Plugin()
     {
+        ECommonsMain.Init(PluginInterface, this, Module.DalamudReflector);
+        DalamudReflector.RegisterOnInstalledPluginsChangedEvents(PluginsChanged);
+        
+        var success = DalamudReflector.TryGetDalamudPlugin("Hyperborea", out var hyperborea);
+        if (success)
+        {
+            Enabled = true;
+            Hyperborea = hyperborea;
+        }
+        
         BgObjectFunctions = new BgObjectFunctions();
         VfxFunctions = new VfxFunctions();
         SharedGroupLayoutFunctions = new SharedGroupLayoutFunctions();
         
-        ObjectManager = new ObjectManager(ClientState, Framework);
+        ObjectManager = new ObjectManager(this, ClientState, Framework);
 
         CommandHandler = new CommandHandler(this);
         
@@ -88,6 +104,21 @@ public sealed class Plugin : IDalamudPlugin
         CommandHandler.Dispose();
         ObjectManager.Dispose();
         VfxFunctions.Dispose();
+
+        ECommonsMain.Dispose();
+    }
+
+    public void PluginsChanged()
+    {
+        Enabled = DalamudReflector.TryGetDalamudPlugin("Hyperborea", out var hyperborea);
+        if (!Enabled)
+        {
+            ObjectManager.Clear();
+        }
+        else
+        {
+            Hyperborea = hyperborea;
+        }
     }
     
     public void ToggleConfigUi() => ConfigWindow.Toggle();

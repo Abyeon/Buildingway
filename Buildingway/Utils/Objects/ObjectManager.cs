@@ -6,6 +6,7 @@ using System.Numerics;
 using Buildingway.Utils.Objects.Vfx;
 using Dalamud.Game.ClientState;
 using Dalamud.Plugin.Services;
+using ECommons.Reflection;
 
 namespace Buildingway.Utils.Objects;
 
@@ -17,12 +18,15 @@ public class ObjectManager : IDisposable
     public List<Model> Models = [];
     public List<Group> Groups = [];
     public List<BaseVfx> Vfx = [];
-    
+
+    private readonly Plugin plugin;
     private readonly IClientState ClientState;
     private readonly IFramework Framework;
 
-    public ObjectManager(IClientState clientState, IFramework framework)
+    public ObjectManager(Plugin plugin, IClientState clientState, IFramework framework)
     {
+        this.plugin = plugin;
+        
         ClientState = clientState;
         ClientState.ZoneInit += ClientStateOnZoneInit;
         ClientState.Logout += ClientStateOnLogout;
@@ -37,6 +41,14 @@ public class ObjectManager : IDisposable
 
     private void FrameworkOnUpdate(IFramework framework)
     {
+        if (!plugin.Enabled) return;
+        
+        if (!plugin.Hyperborea.GetFoP<bool>("Enabled"))
+        {
+            Clear();
+            return;
+        }
+        
         if (IsLoading)
         {
             var placement = placementQueue.Dequeue();

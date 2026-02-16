@@ -8,9 +8,11 @@ using Buildingway.Utils.Interface;
 using Buildingway.Utils.Objects.Vfx;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility.Raii;
+using ECommons.Reflection;
 
 namespace Buildingway.Windows;
 
@@ -38,6 +40,24 @@ public class MainWindow : CustomWindow, IDisposable
     
     protected override void Render()
     { 
+        if (!plugin.Enabled)
+        {
+            ImGui.TextColored(ImGuiColors.DalamudRed, "Please install Hyperborea!");
+            if (ImGui.Button("Add Repo"))
+            {
+                const string repo = "https://puni.sh/api/repository/kawaii";
+                if (!DalamudReflector.HasRepo(repo)) DalamudReflector.AddRepo(repo, true);
+            }
+
+            return;
+        }
+
+        if (!plugin.Hyperborea.GetFoP<bool>("Enabled"))
+        {
+            ImGui.TextColored(ImGuiColors.DalamudRed, "Please enable Hyperborea!");
+            return;
+        }
+        
         fileDialogManager.Draw();
         
         if (Plugin.ObjectTable.LocalPlayer == null)
