@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Buildingway.Utils;
 using Buildingway.Utils.Interface;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Components;
 using Dalamud.Interface.Utility.Raii;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
@@ -18,12 +19,22 @@ public class CatalogWindow : CustomWindow, IDisposable
 {
     private readonly Plugin plugin;
 
-    private ExcelSheet<FurnitureCatalogCategory> indoorCatagories;
-    private ExcelSheet<YardCatalogCategory> outdoorCatagories;
+    private readonly ExcelSheet<FurnitureCatalogCategory> indoorCategories;
+    private readonly ExcelSheet<YardCatalogCategory> outdoorCategories;
 
     private List<Furnishing> indoorFurniture  = [];
     private List<Furnishing> outdoorFurniture = [];
     private List<Furnishing> currentSearch = [];
+
+    private readonly Dictionary<uint, string> placementTypes = new()
+    {
+        { 12, "Indoor Furnishings" },
+        { 13, "Tables" },
+        { 14, "Tabletop" },
+        { 15, "Wall-mounted" },
+        { 16, "Rugs" },
+        // { 17, "Outdoor Furnishings" }
+    };
 
     private bool built; // if the furniture dict is built
 
@@ -37,8 +48,8 @@ public class CatalogWindow : CustomWindow, IDisposable
 
         this.plugin = plugin;
         
-        indoorCatagories = Plugin.DataManager.GetExcelSheet<FurnitureCatalogCategory>();
-        outdoorCatagories = Plugin.DataManager.GetExcelSheet<YardCatalogCategory>();
+        indoorCategories = Plugin.DataManager.GetExcelSheet<FurnitureCatalogCategory>();
+        outdoorCategories = Plugin.DataManager.GetExcelSheet<YardCatalogCategory>();
 
         built = false;
         BuildCategories();
@@ -69,12 +80,14 @@ public class CatalogWindow : CustomWindow, IDisposable
                     if (row == null) continue;
                     
                     var category = row.Value.Category.RowId;
+                    if (!indoorCategories.TryGetRow(category, out var categoryRow)) continue;
                     
                     indoorFurniture.Add(new Furnishing
                     {
                         Name = furniture.Item.Value.Name.ToString(),
                         Model = furniture.ModelKey,
                         Category = category,
+                        Subcategory = categoryRow.Unknown0,
                         Indoors = true
                     });
                 }
@@ -95,6 +108,7 @@ public class CatalogWindow : CustomWindow, IDisposable
                         Name = furniture.Item.Value.Name.ToString(),
                         Model = furniture.ModelKey,
                         Category = category,
+                        Subcategory = 17,
                         Indoors = false
                     });
                 }
@@ -114,6 +128,7 @@ public class CatalogWindow : CustomWindow, IDisposable
     }
 
     private bool indoors = true;
+    private uint selectedSubcategory = 0;
     private uint? selectedCategory;
     private string query = "";
 
@@ -121,8 +136,9 @@ public class CatalogWindow : CustomWindow, IDisposable
     {
         IEnumerable<Furnishing> list = indoors ? indoorFurniture : outdoorFurniture;
         if (selectedCategory != null) list = list.Where(x => x.Category == selectedCategory);
+        if (selectedCategory == null && selectedSubcategory != 0) list = list.Where(x => x.Subcategory == selectedSubcategory);
         if (query != "") list = list.Where(x => x.Name.Contains(query, StringComparison.InvariantCultureIgnoreCase));
-        currentSearch = list.ToList();
+        currentSearch = list.OrderBy(x => x.Name).ToList();
     }
     
     protected override void Render()
@@ -137,13 +153,17 @@ public class CatalogWindow : CustomWindow, IDisposable
         {
             indoors = !indoors;
             selectedCategory = null;
+            selectedSubcategory = 0;
             UpdateSearch();
         }
-
+        
         if (ImGui.InputText("Search", ref query))
         {
             UpdateSearch();
         }
+        
+        DrawSubcategories();
+        ImGuiComponents.HelpMarker("These are the filters listed at the top of the \"Indoor Furnishings\" menu.");
         
         DrawCategories();
         
@@ -186,6 +206,41 @@ public class CatalogWindow : CustomWindow, IDisposable
         }
     }
 
+    private void DrawSubcategories()
+    {
+        uint id = 0;
+        var subName = "All";
+        if (selectedSubcategory != 0)
+        {
+            subName = placementTypes[selectedSubcategory];
+        }
+        
+        using var popup = ImRaii.Combo("Placement", subName);
+        if (!popup.Success) return;
+        
+        ImGui.PushID(id++);
+        if (ImGui.Selectable("All", selectedSubcategory == 0))
+        {
+            selectedSubcategory = 0;
+            UpdateSearch();
+        }
+
+        if (!indoors) return;
+        foreach (var pair in placementTypes)
+        {
+            ImGui.PushID(id++);
+            var key = pair.Key;
+            var name = pair.Value;
+
+            if (ImGui.Selectable(name, key == selectedSubcategory))
+            {
+                selectedSubcategory = key;
+                selectedCategory = null;
+                UpdateSearch();
+            }
+        }
+    }
+
     private void DrawCategories()
     {
         uint id = 0;
@@ -193,7 +248,15 @@ public class CatalogWindow : CustomWindow, IDisposable
         var categoryName = "All";
         if (selectedCategory != null)
         {
-            categoryName = indoors ? indoorCatagories.GetRow(selectedCategory.Value).Category.ToString() : outdoorCatagories.GetRow(selectedCategory.Value).Category.ToString();
+            if (indoors)
+            {
+                var row = indoorCategories.GetRow(selectedCategory.Value);
+                categoryName = $"{row.Category} ({placementTypes[row.Unknown0]})";
+            }
+            else
+            {
+                categoryName = outdoorCategories.GetRow(selectedCategory.Value).Category.ToString();
+            }
         }
         
         using var popup = ImRaii.Combo("Category", categoryName);
@@ -209,11 +272,13 @@ public class CatalogWindow : CustomWindow, IDisposable
 
         if (indoors)
         {
-            foreach (var category in indoorCatagories)
+            foreach (var category in indoorCategories)
             {
+                if (selectedSubcategory != 0 && category.Unknown0 != selectedSubcategory) continue;
+                
                 ImGui.PushID(id++);
-                var name = category.Category.ToString();
-                if (ImGui.Selectable(name, name == categoryName))
+                var name = $"{category.Category} ({placementTypes[category.Unknown0]})";
+                if (ImGui.Selectable(name, category.RowId == selectedCategory))
                 {
                     selectedCategory = category.RowId;
                     UpdateSearch();
@@ -222,11 +287,11 @@ public class CatalogWindow : CustomWindow, IDisposable
         }
         else
         {
-            foreach (var category in outdoorCatagories)
+            foreach (var category in outdoorCategories)
             {
                 ImGui.PushID(id++);
                 var name = category.Category.ToString();
-                if (ImGui.Selectable(name, name == categoryName))
+                if (ImGui.Selectable(name, category.RowId == selectedCategory))
                 {
                     selectedCategory = category.RowId;
                     UpdateSearch();
@@ -243,6 +308,7 @@ public struct Furnishing
     public string Name;
     public uint Model;
     public uint Category;
+    public uint Subcategory;
     public bool Indoors;
 
     public string GetPath()

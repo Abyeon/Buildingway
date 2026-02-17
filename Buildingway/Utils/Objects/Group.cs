@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Numerics;
+using Dalamud.Bindings.ImGui;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Group;
 using FFXIVClientStructs.FFXIV.Client.System.Memory;
 
@@ -64,7 +65,10 @@ public unsafe class Group : IDisposable
 
     public void DrawInfo()
     {
-        
+#if DEBUG
+        if (ImGui.Button("Copy Addr")) ImGui.SetClipboardText(((IntPtr)Data).ToString("X8"));
+#endif
+        //if (ImGui.Button("Update Render")) Data->
     }
     
     public void Dispose()

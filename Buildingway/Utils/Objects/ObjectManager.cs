@@ -41,6 +41,7 @@ public class ObjectManager : IDisposable
 
     private void FrameworkOnUpdate(IFramework framework)
     {
+#if (!DEBUG)
         if (!plugin.Enabled) return;
         
         if (!plugin.Hyperborea.GetFoP<bool>("Enabled"))
@@ -48,6 +49,7 @@ public class ObjectManager : IDisposable
             Clear();
             return;
         }
+#endif
         
         if (IsLoading)
         {
@@ -178,6 +180,7 @@ public class ObjectManager : IDisposable
     /// </summary>
     public void Clear()
     {
+        plugin.Overlay.SelectedTransform = null;
         placementQueue.Clear();
         ClearModels();
         ClearGroups();

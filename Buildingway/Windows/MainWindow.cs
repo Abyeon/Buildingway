@@ -40,6 +40,7 @@ public class MainWindow : CustomWindow, IDisposable
     
     protected override void Render()
     { 
+#if (!DEBUG)
         if (!plugin.Enabled)
         {
             ImGui.TextColored(ImGuiColors.DalamudRed, "Please install Hyperborea!");
@@ -48,15 +49,16 @@ public class MainWindow : CustomWindow, IDisposable
                 const string repo = "https://puni.sh/api/repository/kawaii";
                 if (!DalamudReflector.HasRepo(repo)) DalamudReflector.AddRepo(repo, true);
             }
-
+        
             return;
         }
-
+        
         if (!plugin.Hyperborea.GetFoP<bool>("Enabled"))
         {
             ImGui.TextColored(ImGuiColors.DalamudRed, "Please enable Hyperborea!");
             return;
         }
+#endif
         
         fileDialogManager.Draw();
         
@@ -170,6 +172,7 @@ public class MainWindow : CustomWindow, IDisposable
                 }
                 
                 DrawTransform(ref group.Transform);
+                group.DrawInfo();
             }
 
             ImGui.Spacing();
@@ -272,6 +275,16 @@ public class MainWindow : CustomWindow, IDisposable
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
         {
             ImGui.SetTooltip("Edit using the gizmo");
+        }
+
+        ImGui.SameLine();
+        if (ImGuiComponents.IconButton("###WidgetCopy", FontAwesomeIcon.Copy))
+        {
+            var transformCopy = transform;
+            Plugin.Framework.RunOnFrameworkThread(() =>
+            {
+                Plugin.ObjectManager.Add(itemPath, transformCopy.Position, transformCopy.Rotation, transformCopy.Scale, plugin.Configuration.SpawnWithCollision);
+            });
         }
                 
         ImGui.SameLine();
