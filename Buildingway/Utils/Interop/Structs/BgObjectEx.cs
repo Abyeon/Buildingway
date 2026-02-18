@@ -16,7 +16,7 @@ public unsafe struct BgObjectEx
     /// (&amp; 0xF0) >> 4 == ObjectHighlightColor
     /// &amp; 0x0F == other state (3 = Default)
     /// </remarks>
-    [FieldOffset(0x88)] public byte HighlightFlags;
+    [FieldOffset(0x89)] public byte HighlightFlags;
     
     /// <summary>
     /// 0-255 with 0 being fully visible

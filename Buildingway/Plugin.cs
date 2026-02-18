@@ -9,6 +9,7 @@ using Dalamud.Plugin.Services;
 using Buildingway.Windows;
 using ECommons;
 using ECommons.Reflection;
+using Anyder;
 
 namespace Buildingway;
 
@@ -47,6 +48,7 @@ public sealed class Plugin : IDalamudPlugin
 
     public Plugin()
     {
+        AnyderService.Init(PluginInterface);
         ECommonsMain.Init(PluginInterface, this, Module.DalamudReflector);
         DalamudReflector.RegisterOnInstalledPluginsChangedEvents(PluginsChanged);
         
@@ -104,7 +106,8 @@ public sealed class Plugin : IDalamudPlugin
         CommandHandler.Dispose();
         ObjectManager.Dispose();
         VfxFunctions.Dispose();
-
+        
+        AnyderService.Dispose();
         ECommonsMain.Dispose();
     }
 

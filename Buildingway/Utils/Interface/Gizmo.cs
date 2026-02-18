@@ -6,13 +6,13 @@ using CameraManager = FFXIVClientStructs.FFXIV.Client.Game.Control.CameraManager
 
 namespace Buildingway.Utils.Interface;
 
-public static class DrawExtensions
+public static unsafe class Gizmo
 {
-    private static unsafe Camera* Camera => &CameraManager.Instance()->GetActiveCamera()->CameraBase.SceneCamera;
+    private static Camera* Camera => &CameraManager.Instance()->GetActiveCamera()->CameraBase.SceneCamera;
 
     public static ImGuizmoOperation Operation = ImGuizmoOperation.Translate;
-    
-    public static unsafe bool Manipulate(ref Transform transform, float snapDistance, string id)
+
+    public static bool Manipulate(ref Transform transform, float snapDistance, string id)
     {
         ImGuizmo.BeginFrame();
         
@@ -39,9 +39,8 @@ public static class DrawExtensions
         ImGuizmo.SetRect(windowPos.X, windowPos.Y, io.DisplaySize.X, io.DisplaySize.Y);
 
         Matrix4x4 matrix = transform.GetTransformation();
-        
         Vector3 snap = Vector3.One * snapDistance;
-
+        
         FixedManipulate(ref view.M11, ref proj.M11, Operation, ImGuizmoMode.Local, ref matrix.M11, ref snap.X);
         
         if (ImGuizmo.IsUsing())
@@ -66,8 +65,22 @@ public static class DrawExtensions
 
         return false;
     }
+
+    private static void FixedGrid(ref float view, ref float proj, ref float matrix, float size)
+    {
+        fixed (float* nativeView = &view)
+        {
+            fixed (float* nativeProj = &proj)
+            {
+                fixed (float* nativeMatrix = &matrix)
+                {
+                    ImGuizmo.DrawGrid(nativeView, nativeProj, nativeMatrix, size);
+                }
+            }
+        }
+    }
     
-    private static unsafe bool FixedManipulate(ref float view, ref float proj, ImGuizmoOperation op, ImGuizmoMode mode, ref float matrix, ref float snap)
+    private static bool FixedManipulate(ref float view, ref float proj, ImGuizmoOperation op, ImGuizmoMode mode, ref float matrix, ref float snap)
     {
         fixed (float* nativeView = &view)
         {

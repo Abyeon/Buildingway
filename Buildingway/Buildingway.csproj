@@ -2,7 +2,7 @@
 <Project Sdk="Dalamud.NET.Sdk/14.0.2">
   <PropertyGroup>
     <Version>0.0.0.8</Version>
-    <PackageProjectUrl>https://github.com/goatcorp/Buildingway</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/Abyeon/Buildingway</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
@@ -10,5 +10,8 @@
     <PackageReference Update="DalamudPackager" Version="14.0.2" />
     <PackageReference Update="DotNet.ReproducibleBuilds" Version="2.0.2" />
     <PackageReference Include="ECommons" Version="3.1.0.22" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Anyder\Anyder\Anyder.csproj" />
   </ItemGroup>
 </Project>

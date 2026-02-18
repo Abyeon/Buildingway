@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using Anyder;
 using Buildingway.Utils;
 using Buildingway.Utils.Interface;
+using Buildingway.Utils.Objects;
 using Buildingway.Utils.Objects.Vfx;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -105,7 +107,7 @@ public class MainWindow : CustomWindow, IDisposable
         {
             Plugin.Framework.RunOnFrameworkThread(() =>
             {
-                Plugin.ObjectManager.Add(path, player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
+                AnyderService.ObjectManager.Add(path, player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
             });
             
             plugin.Overlay.SelectedTransform = null;
@@ -144,7 +146,10 @@ public class MainWindow : CustomWindow, IDisposable
         {
             using var pushedId = ImRaii.PushId(id++);
 
-            if (!DrawHeader(player.Position, ref group.Transform, group.Path, ref id)) continue;
+            var opened = DrawHeader(player.Position, ref group.Transform, group.Path, ref id);
+            CheckHighlight(group);
+
+            if (!opened) continue;
             using (new Ui.Hoverable(id.ToString(), 0f, margin: new Vector2(0f, 0f), padding: new Vector2(5f, 5f), highlight: true))
             {
                 DrawWidgets(player.Position, ref group.Transform, group.Path);
@@ -174,7 +179,7 @@ public class MainWindow : CustomWindow, IDisposable
                 DrawTransform(ref group.Transform);
                 group.DrawInfo();
             }
-
+            
             ImGui.Spacing();
         }
         
@@ -245,6 +250,20 @@ public class MainWindow : CustomWindow, IDisposable
             }
 
             ImGui.Spacing();
+        }
+    }
+
+    private void CheckHighlight(Group group)
+    {
+        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+        {
+            group.IsHovered = true;
+            group.SetHighlight(40);
+        }
+        else if (group.IsHovered)
+        {
+            group.IsHovered = false;
+            group.SetHighlight(0);
         }
     }
 

@@ -37,6 +37,11 @@ public class Overlay : Window, IDisposable
         
         ImGuiHelpers.SetWindowPosRelativeMainViewport("###BuildingwayOverlay", new Vector2(0, 0));
         ImGui.SetWindowSize(io.DisplaySize);
+
+        foreach (var group in Plugin.ObjectManager.Groups)
+        {
+            
+        }
         
         if (SelectedTransform == null) return;
         
@@ -47,19 +52,19 @@ public class Overlay : Window, IDisposable
         {
             if (ctrl)
             {
-                DrawExtensions.Operation = ImGuizmoOperation.Scale;
+                Gizmo.Operation = ImGuizmoOperation.Scale;
             } else if (shift)
             {
-                DrawExtensions.Operation = ImGuizmoOperation.Rotate;
+                Gizmo.Operation = ImGuizmoOperation.Rotate;
             }
             else
             {
-                DrawExtensions.Operation = ImGuizmoOperation.Translate;
+                Gizmo.Operation = ImGuizmoOperation.Translate;
             }
         }
         
         var transform = SelectedTransform;
-        if (DrawExtensions.Manipulate(ref transform, 0.05f, "BuildingwayManipulate"))
+        if (Gizmo.Manipulate(ref transform, 0.05f, "BuildingwayManipulate"))
         {
             SelectedTransform = transform;
             SelectedTransform.Update();
