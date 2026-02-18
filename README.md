@@ -3,6 +3,7 @@
 A plugin for building whatever you want, within in the safety of Hyperborea. Create the most insane jump puzzles, or most beautiful housing builds.
 
 ## How to use
+* (Optional, but recommended) Log into a free trial account
 * Install [Hyperborea](https://github.com/kawaii/Hyperborea) ``https://puni.sh/api/repository/kawaii``
 * Install Buildingway via [my plugin repo](https://github.com/Abyeon/MyDalamudPlugins) ``https://raw.githubusercontent.com/Abyeon/MyDalamudPlugins/main/master.json``
 * Enter an inn
