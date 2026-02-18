@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Text.Json;
+using Anyder;
+using Anyder.Objects;
 
 namespace Buildingway.Utils;
 
@@ -7,7 +9,7 @@ public static class Serializer
 {
     public static string SerializeCurrent()
     {
-        return Serialize(new Layout(Plugin.ObjectManager));
+        return Serialize(new Layout(AnyderService.ObjectManager));
     }
     
     public static string Serialize(Layout layout)

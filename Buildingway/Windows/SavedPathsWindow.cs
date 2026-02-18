@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Numerics;
+using Anyder;
 using Buildingway.Utils;
 using Buildingway.Utils.Interface;
 using Dalamud.Bindings.ImGui;
@@ -54,7 +55,7 @@ public class SavedPathsWindow : CustomWindow, IDisposable
             {
                 if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                 {
-                    Plugin.ObjectManager.Add(path, player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
+                    AnyderService.ObjectManager.Add(path, player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
                 } else if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
                 {
                     ImGui.OpenPopup("##ItemRightPopup");

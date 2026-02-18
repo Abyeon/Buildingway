@@ -1,6 +1,7 @@
-﻿using Buildingway.Commands;
-using Buildingway.Utils.Interop.Structs;
-using Buildingway.Utils.Objects;
+﻿using System.Collections.Generic;
+using Buildingway.Commands;
+// using Buildingway.Utils.Interop.Structs;
+// using Buildingway.Utils.Objects;
 using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Plugin;
@@ -10,6 +11,7 @@ using Buildingway.Windows;
 using ECommons;
 using ECommons.Reflection;
 using Anyder;
+using Buildingway.Utils;
 
 namespace Buildingway;
 
@@ -27,12 +29,12 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ISigScanner SigScanner { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
-    internal static BgObjectFunctions BgObjectFunctions { get; private set; } = null!;
-    internal static VfxFunctions VfxFunctions { get; private set; } = null!;
-    internal static SharedGroupLayoutFunctions SharedGroupLayoutFunctions { get; private set; } = null!;
+    // internal static BgObjectFunctions BgObjectFunctions { get; private set; } = null!;
+    // internal static VfxFunctions VfxFunctions { get; private set; } = null!;
+    // internal static SharedGroupLayoutFunctions SharedGroupLayoutFunctions { get; private set; } = null!;
 
     internal static CommandHandler CommandHandler { get; private set; } = null!;
-    internal static ObjectManager ObjectManager { get; private set; } = null!;
+    // internal static ObjectManager ObjectManager { get; private set; } = null!;
     internal Configuration Configuration { get; init; }
     internal readonly WindowSystem WindowSystem = new("Buildingway");
     
@@ -59,11 +61,11 @@ public sealed class Plugin : IDalamudPlugin
             Hyperborea = hyperborea;
         }
         
-        BgObjectFunctions = new BgObjectFunctions();
-        VfxFunctions = new VfxFunctions();
-        SharedGroupLayoutFunctions = new SharedGroupLayoutFunctions();
-        
-        ObjectManager = new ObjectManager(this, ClientState, Framework);
+        // BgObjectFunctions = new BgObjectFunctions();
+        // VfxFunctions = new VfxFunctions();
+        // SharedGroupLayoutFunctions = new SharedGroupLayoutFunctions();
+        //
+        // ObjectManager = new ObjectManager(this, ClientState, Framework);
 
         CommandHandler = new CommandHandler(this);
         
@@ -104,11 +106,13 @@ public sealed class Plugin : IDalamudPlugin
         Overlay.Dispose();
 
         CommandHandler.Dispose();
-        ObjectManager.Dispose();
-        VfxFunctions.Dispose();
+        // ObjectManager.Dispose();
+        // VfxFunctions.Dispose();
         
         AnyderService.Dispose();
         ECommonsMain.Dispose();
+
+        placementQueue.Clear();
     }
 
     public void PluginsChanged()
@@ -116,14 +120,34 @@ public sealed class Plugin : IDalamudPlugin
         Enabled = DalamudReflector.TryGetDalamudPlugin("Hyperborea", out var hyperborea);
         if (!Enabled)
         {
-            ObjectManager.Clear();
+            AnyderService.ObjectManager.Clear();
         }
         else
         {
             Hyperborea = hyperborea;
         }
     }
+
+    private Queue<Placement> placementQueue = new();
     
+    public void LoadLayout(Layout layout)
+    {
+        placementQueue = new Queue<Placement>(layout.Placements);
+        Framework.Update += OnUpdate;
+    }
+
+    private void OnUpdate(IFramework framework)
+    {
+        if (placementQueue.Count == 0)
+        {
+            Framework.Update -= OnUpdate;
+            return;
+        }
+        
+        var placement = placementQueue.Dequeue();
+        AnyderService.ObjectManager.Add(placement.Path, placement.Position, placement.Rotation, placement.Scale, placement.Collision);
+    }
+
     public void ToggleConfigUi() => ConfigWindow.Toggle();
     public void ToggleMainUi() => MainWindow.Toggle();
     public void ToggleCatalogUi() => CatalogWindow.Toggle();

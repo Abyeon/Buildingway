@@ -4,10 +4,12 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using Anyder;
+using Anyder.Objects;
+using Anyder.Objects.Vfx;
 using Buildingway.Utils;
 using Buildingway.Utils.Interface;
-using Buildingway.Utils.Objects;
-using Buildingway.Utils.Objects.Vfx;
+// using Buildingway.Utils.Objects;
+// using Buildingway.Utils.Objects.Vfx;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
@@ -91,7 +93,8 @@ public class MainWindow : CustomWindow, IDisposable
                 var layout = Serializer.Deserialize(json);
                 
                 plugin.Overlay.SelectedTransform = null;
-                Plugin.ObjectManager.LoadLayout(layout);
+                plugin.LoadLayout(layout);
+                // Plugin.ObjectManager.LoadLayout(layout);
             });
         }
         
@@ -123,7 +126,8 @@ public class MainWindow : CustomWindow, IDisposable
         {
             Plugin.Framework.RunOnFrameworkThread(() =>
             {
-                Plugin.ObjectManager.Clear();
+                AnyderService.ObjectManager.Clear();
+                // Plugin.ObjectManager.Clear();
             });
             
             plugin.Overlay.SelectedTransform = null;
@@ -142,7 +146,7 @@ public class MainWindow : CustomWindow, IDisposable
         var ctrl = ImGui.GetIO().KeyCtrl;
 
         var id = 0;
-        foreach (var group in Plugin.ObjectManager.Groups.ToList())
+        foreach (var group in AnyderService.ObjectManager.Groups.ToList())
         {
             using var pushedId = ImRaii.PushId(id++);
 
@@ -159,7 +163,7 @@ public class MainWindow : CustomWindow, IDisposable
                 {
                     if (ImGuiComponents.IconButton("###GroupErase", FontAwesomeIcon.Eraser))
                     {
-                        Plugin.ObjectManager.Groups.Remove(group);
+                        AnyderService.ObjectManager.Groups.Remove(group);
                         group.Dispose();
                         plugin.Overlay.SelectedTransform = null;
                         continue;
@@ -177,7 +181,7 @@ public class MainWindow : CustomWindow, IDisposable
                 }
                 
                 DrawTransform(ref group.Transform);
-                group.DrawInfo();
+                // group.DrawInfo();
             }
             
             ImGui.Spacing();
@@ -185,7 +189,7 @@ public class MainWindow : CustomWindow, IDisposable
         
         Ui.CenteredTextWithLine("Models", ImGui.GetColorU32(ImGuiCol.TabActive));
 
-        foreach (var model in Plugin.ObjectManager.Models.ToList())
+        foreach (var model in AnyderService.ObjectManager.Models.ToList())
         {
             using var pushedId = ImRaii.PushId(id++);
             if (!DrawHeader(player.Position, ref model.Transform, model.Path, ref id)) continue;
@@ -199,7 +203,7 @@ public class MainWindow : CustomWindow, IDisposable
                 {
                     if (ImGuiComponents.IconButton("###ModelErase", FontAwesomeIcon.Eraser))
                     {
-                        Plugin.ObjectManager.Models.Remove(model);
+                        AnyderService.ObjectManager.Models.Remove(model);
                         model.Dispose();
                         plugin.Overlay.SelectedTransform = null;
                         continue;
@@ -211,7 +215,7 @@ public class MainWindow : CustomWindow, IDisposable
                 }
                 
                 DrawTransform(ref model.Transform);
-                model.DrawInfo();
+                // model.DrawInfo();
             }
 
             ImGui.Spacing();
@@ -219,7 +223,7 @@ public class MainWindow : CustomWindow, IDisposable
         
         Ui.CenteredTextWithLine("Vfx", ImGui.GetColorU32(ImGuiCol.TabActive));
 
-        foreach (var item in Plugin.ObjectManager.Vfx.ToList())
+        foreach (var item in AnyderService.ObjectManager.Vfx.ToList())
         {
             if (item is not StaticVfx vfx) continue;
 
@@ -235,7 +239,7 @@ public class MainWindow : CustomWindow, IDisposable
                 {
                     if (ImGuiComponents.IconButton("###VfxErase", FontAwesomeIcon.Eraser))
                     {
-                        Plugin.ObjectManager.Vfx.Remove(vfx);
+                        AnyderService.ObjectManager.Vfx.Remove(vfx);
                         vfx.Dispose();
                         plugin.Overlay.SelectedTransform = null;
                         continue;
@@ -302,7 +306,7 @@ public class MainWindow : CustomWindow, IDisposable
             var transformCopy = transform;
             Plugin.Framework.RunOnFrameworkThread(() =>
             {
-                Plugin.ObjectManager.Add(itemPath, transformCopy.Position, transformCopy.Rotation, transformCopy.Scale, plugin.Configuration.SpawnWithCollision);
+                AnyderService.ObjectManager.Add(itemPath, transformCopy.Position, transformCopy.Rotation, transformCopy.Scale, plugin.Configuration.SpawnWithCollision);
             });
         }
                 

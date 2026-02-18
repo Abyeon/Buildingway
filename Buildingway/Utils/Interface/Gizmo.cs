@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Anyder.Objects;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Bindings.ImGuizmo;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;

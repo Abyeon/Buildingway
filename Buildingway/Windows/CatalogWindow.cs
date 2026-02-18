@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
+using Anyder;
 using Buildingway.Utils;
 using Buildingway.Utils.Interface;
 using Dalamud.Bindings.ImGui;
@@ -199,7 +200,7 @@ public class CatalogWindow : CustomWindow, IDisposable
             ImGui.TableNextColumn();
             if (ImGui.Selectable(furniture.Name, flags: ImGuiSelectableFlags.SpanAllColumns))
             {
-                Plugin.ObjectManager.Add(furniture.GetPath(), player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
+                AnyderService.ObjectManager.Add(furniture.GetPath(), player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
             }
             ImGui.TableNextColumn();
             ImGui.Text(furniture.GetPath());
