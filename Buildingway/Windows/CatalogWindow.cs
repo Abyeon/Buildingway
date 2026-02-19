@@ -77,18 +77,24 @@ public class CatalogWindow : CustomWindow, IDisposable
                 {
                     if (furniture.Item.Value.Name.IsEmpty) continue;
 
+                    int category = -1;
+                    int subCategory = -1;
                     var row = indoorCatalog.FirstOrNull(x => x.Item.RowId == furniture.Item.RowId);
-                    if (row == null) continue;
-                    
-                    var category = row.Value.Category.RowId;
-                    if (!indoorCategories.TryGetRow(category, out var categoryRow)) continue;
+                    if (row != null)
+                    {
+                        if (indoorCategories.TryGetRow(row.Value.Category.RowId, out var catalogCategory))
+                        {
+                            category = (int)catalogCategory.RowId;
+                            subCategory = (int)catalogCategory.Unknown0;
+                        }
+                    }
                     
                     indoorFurniture.Add(new Furnishing
                     {
                         Name = furniture.Item.Value.Name.ToString(),
                         Model = furniture.ModelKey,
                         Category = category,
-                        Subcategory = categoryRow.Unknown0,
+                        Subcategory = subCategory,
                         Indoors = true
                     });
                 }
@@ -99,10 +105,15 @@ public class CatalogWindow : CustomWindow, IDisposable
                 {
                     if (furniture.Item.Value.Name.IsEmpty) continue;
                     
+                    int category = -1;
                     var row = outdoorCatalog.FirstOrNull(x => x.Item.RowId == furniture.Item.RowId);
-                    if (row == null) continue;
-                    
-                    var category = row.Value.Category.RowId;
+                    if (row != null)
+                    {
+                        if (indoorCategories.TryGetRow(row.Value.Category.RowId, out var catalogCategory))
+                        {
+                            category = (int)catalogCategory.RowId;
+                        }
+                    }
                     
                     outdoorFurniture.Add(new Furnishing
                     {
@@ -130,7 +141,7 @@ public class CatalogWindow : CustomWindow, IDisposable
 
     private bool indoors = true;
     private uint selectedSubcategory = 0;
-    private uint? selectedCategory;
+    private int? selectedCategory;
     private string query = "";
 
     private void UpdateSearch()
@@ -249,14 +260,18 @@ public class CatalogWindow : CustomWindow, IDisposable
         var categoryName = "All";
         if (selectedCategory != null)
         {
-            if (indoors)
+            if (selectedCategory == -1)
             {
-                var row = indoorCategories.GetRow(selectedCategory.Value);
+                categoryName = "Restricted";
+            }
+            else if (indoors)
+            {
+                var row = indoorCategories.GetRow((uint)selectedCategory.Value);
                 categoryName = $"{row.Category} ({placementTypes[row.Unknown0]})";
             }
             else
             {
-                categoryName = outdoorCategories.GetRow(selectedCategory.Value).Category.ToString();
+                categoryName = outdoorCategories.GetRow((uint)selectedCategory.Value).Category.ToString();
             }
         }
         
@@ -270,6 +285,13 @@ public class CatalogWindow : CustomWindow, IDisposable
             selectedCategory = null;
             UpdateSearch();
         }
+        
+        ImGui.PushID(id++);
+        if (ImGui.Selectable("Restricted", selectedCategory == -1))
+        {
+            selectedCategory = -1;
+            UpdateSearch();
+        }
 
         if (indoors)
         {
@@ -281,7 +303,7 @@ public class CatalogWindow : CustomWindow, IDisposable
                 var name = $"{category.Category} ({placementTypes[category.Unknown0]})";
                 if (ImGui.Selectable(name, category.RowId == selectedCategory))
                 {
-                    selectedCategory = category.RowId;
+                    selectedCategory = (int)category.RowId;
                     UpdateSearch();
                 }
             }
@@ -294,7 +316,7 @@ public class CatalogWindow : CustomWindow, IDisposable
                 var name = category.Category.ToString();
                 if (ImGui.Selectable(name, category.RowId == selectedCategory))
                 {
-                    selectedCategory = category.RowId;
+                    selectedCategory = (int)category.RowId;
                     UpdateSearch();
                 }
             }
@@ -308,8 +330,8 @@ public struct Furnishing
 {
     public string Name;
     public uint Model;
-    public uint Category;
-    public uint Subcategory;
+    public int Category;
+    public int Subcategory;
     public bool Indoors;
 
     public string GetPath()

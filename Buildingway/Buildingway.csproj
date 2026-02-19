@@ -5,6 +5,8 @@
     <PackageProjectUrl>https://github.com/Abyeon/Buildingway</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <IsPackable>false</IsPackable>
+    <Configurations>Release;Debug</Configurations>
+    <Platforms>AnyCPU</Platforms>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Update="DalamudPackager" Version="14.0.2" />

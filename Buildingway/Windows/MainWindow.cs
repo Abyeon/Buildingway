@@ -43,7 +43,7 @@ public class MainWindow : CustomWindow, IDisposable
     private string path = "bgcommon/hou/outdoor/general/0332/asset/gar_b0_m0332.sgb";
     
     protected override void Render()
-    { 
+    {
 #if (!DEBUG)
         if (!plugin.Enabled)
         {
