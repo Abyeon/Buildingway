@@ -17,6 +17,7 @@ using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility.Raii;
 using ECommons.Reflection;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
 
 namespace Buildingway.Windows;
 
@@ -153,57 +154,59 @@ public class MainWindow : CustomWindow, IDisposable
 
             var transform = obj.GetTransform();
             var opened = DrawHeader(player.Position, obj, ref transform!, ref id);
-            // CheckHighlight(obj);
+            var hovered = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled);
 
-            if (!opened) continue;
-            using (new Ui.Hoverable(id.ToString(), 0f, margin: new Vector2(0f, 0f), padding: new Vector2(5f, 5f), highlight: true))
+            if (opened)
             {
-                DrawWidgets(player.Position, ref transform!, obj.Path);
+                using (new Ui.Hoverable(id.ToString(), 0f, margin: new Vector2(0f, 0f), padding: new Vector2(5f, 5f), highlight: true))
+                {
+                    DrawWidgets(player.Position, ref transform!, obj.Path);
                 
-                ImGui.SameLine();
-                using (_ = ImRaii.Disabled(!ctrl))
-                {
-                    if (ImGuiComponents.IconButton("###GroupErase", FontAwesomeIcon.Eraser))
-                    {
-                        AnyderService.ObjectManager.Objects.Remove(obj);
-                        obj.Dispose();
-                        plugin.Overlay.SelectedTransform = null;
-                        continue;
-                    }
-                    if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-                    {
-                        ImGui.SetTooltip("Ctrl + Click to erase this object.");
-                    }
-                }
-
-                if (obj.Type is ObjectType.SharedGroup)
-                {
                     ImGui.SameLine();
-                    if (ImGui.Checkbox("Collision", ref obj.Group!.Collide))
+                    using (_ = ImRaii.Disabled(!ctrl))
                     {
-                        transform.Update();
+                        if (ImGuiComponents.IconButton("###GroupErase", FontAwesomeIcon.Eraser))
+                        {
+                            AnyderService.ObjectManager.Objects.Remove(obj);
+                            obj.Dispose();
+                            plugin.Overlay.SelectedTransform = null;
+                            continue;
+                        }
+                        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+                        {
+                            ImGui.SetTooltip("Ctrl + Click to erase this object.");
+                        }
                     }
-                }
+
+                    if (obj.Type is ObjectType.SharedGroup)
+                    {
+                        ImGui.SameLine();
+                        if (ImGui.Checkbox("Collision", ref obj.Group!.Collide))
+                        {
+                            transform.Update();
+                        }
+                    }
                 
-                DrawTransform(ref transform);
-                // group.DrawInfo();
+                    DrawTransform(ref transform);
+                }
+            }
+            
+            // Handle highlighting for supported objects
+            hovered = hovered || ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled);
+            if (obj.Type is ObjectType.SharedGroup or ObjectType.Model)
+            {
+                switch (hovered)
+                {
+                    case true when !obj.IsHighlighted:
+                        obj.Highlight(35);
+                        break;
+                    case false when obj.IsHighlighted:
+                        obj.RemoveHighlight();
+                        break;
+                }
             }
             
             ImGui.Spacing();
-        }
-    }
-
-    private void CheckHighlight(Group group)
-    {
-        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-        {
-            group.IsHovered = true;
-            group.SetHighlight(40);
-        }
-        else if (group.IsHovered)
-        {
-            group.IsHovered = false;
-            group.SetHighlight(0);
         }
     }
 
