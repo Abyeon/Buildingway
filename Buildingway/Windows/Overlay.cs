@@ -39,11 +39,6 @@ public class Overlay : Window, IDisposable
         
         ImGuiHelpers.SetWindowPosRelativeMainViewport("###BuildingwayOverlay", new Vector2(0, 0));
         ImGui.SetWindowSize(io.DisplaySize);
-
-        foreach (var group in AnyderService.ObjectManager.Groups)
-        {
-            
-        }
         
         if (SelectedTransform == null) return;
         

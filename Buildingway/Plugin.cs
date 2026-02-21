@@ -145,7 +145,8 @@ public sealed class Plugin : IDalamudPlugin
         }
         
         var placement = placementQueue.Dequeue();
-        AnyderService.ObjectManager.Add(placement.Path, placement.Position, placement.Rotation, placement.Scale, placement.Collision);
+        var obj = AnyderService.ObjectManager.Add(placement.Path, placement.Position, placement.Rotation, placement.Scale, placement.Collision);
+        if (placement.Name != null) obj.Name = placement.Name;
     }
 
     public void ToggleConfigUi() => ConfigWindow.Toggle();

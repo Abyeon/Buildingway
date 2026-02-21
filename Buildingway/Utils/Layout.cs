@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text.Json.Serialization;
+using Anyder;
 using Anyder.Objects;
 using Anyder.Objects.Vfx;
 // using Buildingway.Utils.Objects;
@@ -26,20 +27,42 @@ public class Layout
         
         ZoneId = Plugin.ClientState.TerritoryType;
         StartPosition = player.Position;
-        
-        var models = objectManager.Models.Select(x => new Placement(x.Path, x.Transform.Position, x.Transform.Rotation, x.Transform.Scale, false));
-        var groups = objectManager.Groups.Select(x => new Placement(x.Path, x.Transform.Position, x.Transform.Rotation, x.Transform.Scale, x.Collide));
-        var vfx    = objectManager.Vfx.OfType<StaticVfx>().Select(x => new Placement(x.Path, x.Transform.Position, x.Transform.Rotation, x.Transform.Scale, false));
-        
-        Placements = models.Concat(groups).Concat(vfx).ToList();
+
+        Placements = AnyderService.ObjectManager.Objects
+                               .Where(x => x.Type != ObjectType.ActorVfx && x.Type != ObjectType.Invalid)
+                               .Select(x =>
+                               {
+                                   var transform = x.GetTransform();
+                                   var collide = x.Group is { Collide: true };
+                                   return new Placement(x.Path, x.Name, transform!.Position, transform!.Rotation, transform!.Scale, collide);
+                               }).ToList();
     }
 }
 
-public struct Placement(string path, Vector3 position, Quaternion rotation, Vector3 scale, bool collision)
+public struct Placement
 {
-    public string Path { get; set; } = path;
-    public Vector3 Position { get; set; } = position;
-    public Quaternion Rotation { get; set; } = rotation;
-    public Vector3 Scale { get; set; } = scale;
-    public bool Collision { get; set; } = collision;
+    public string Path { get; set; }
+    public string? Name { get; set; }
+    public Vector3 Position { get; set; }
+    public Quaternion Rotation { get; set; }
+    public Vector3 Scale { get; set; }
+    public bool Collision { get; set; }
+
+    public Placement(string path, string name, Vector3 position, Quaternion rotation, Vector3 scale, bool collision)
+    {
+        Path = path;
+        Name = name;
+        Position = position;
+        Rotation = rotation;
+        Scale = scale;
+    }
+    
+    public Placement(string path, Vector3 position, Quaternion rotation, Vector3 scale, bool collision)
+    {
+        Path = path;
+        Name = path;
+        Position = position;
+        Rotation = rotation;
+        Scale = scale;
+    }
 }

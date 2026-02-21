@@ -146,25 +146,27 @@ public class MainWindow : CustomWindow, IDisposable
         var ctrl = ImGui.GetIO().KeyCtrl;
 
         var id = 0;
-        foreach (var group in AnyderService.ObjectManager.Groups.ToList())
+        foreach (var obj in AnyderService.ObjectManager.Objects.ToList())
         {
+            if (obj.Type is ObjectType.ActorVfx || !obj.IsValid) continue;
             using var pushedId = ImRaii.PushId(id++);
 
-            var opened = DrawHeader(player.Position, ref group.Transform, group.Path, ref id);
-            CheckHighlight(group);
+            var transform = obj.GetTransform();
+            var opened = DrawHeader(player.Position, obj, ref transform!, ref id);
+            // CheckHighlight(obj);
 
             if (!opened) continue;
             using (new Ui.Hoverable(id.ToString(), 0f, margin: new Vector2(0f, 0f), padding: new Vector2(5f, 5f), highlight: true))
             {
-                DrawWidgets(player.Position, ref group.Transform, group.Path);
+                DrawWidgets(player.Position, ref transform!, obj.Path);
                 
                 ImGui.SameLine();
                 using (_ = ImRaii.Disabled(!ctrl))
                 {
                     if (ImGuiComponents.IconButton("###GroupErase", FontAwesomeIcon.Eraser))
                     {
-                        AnyderService.ObjectManager.Groups.Remove(group);
-                        group.Dispose();
+                        AnyderService.ObjectManager.Objects.Remove(obj);
+                        obj.Dispose();
                         plugin.Overlay.SelectedTransform = null;
                         continue;
                     }
@@ -174,85 +176,19 @@ public class MainWindow : CustomWindow, IDisposable
                     }
                 }
 
-                ImGui.SameLine();
-                if (ImGui.Checkbox("Collision", ref group.Collide))
+                if (obj.Type is ObjectType.SharedGroup)
                 {
-                    group.Transform.Update();
+                    ImGui.SameLine();
+                    if (ImGui.Checkbox("Collision", ref obj.Group!.Collide))
+                    {
+                        transform.Update();
+                    }
                 }
                 
-                DrawTransform(ref group.Transform);
+                DrawTransform(ref transform);
                 // group.DrawInfo();
             }
             
-            ImGui.Spacing();
-        }
-        
-        Ui.CenteredTextWithLine("Models", ImGui.GetColorU32(ImGuiCol.TabActive));
-
-        foreach (var model in AnyderService.ObjectManager.Models.ToList())
-        {
-            using var pushedId = ImRaii.PushId(id++);
-            if (!DrawHeader(player.Position, ref model.Transform, model.Path, ref id)) continue;
-            
-            using (new Ui.Hoverable(id.ToString(), 0f, margin: new Vector2(0f, 0f), padding: new Vector2(5f, 5f), highlight: true))
-            {
-                DrawWidgets(player.Position, ref model.Transform, model.Path);
-                
-                ImGui.SameLine();
-                using (_ = ImRaii.Disabled(!ctrl))
-                {
-                    if (ImGuiComponents.IconButton("###ModelErase", FontAwesomeIcon.Eraser))
-                    {
-                        AnyderService.ObjectManager.Models.Remove(model);
-                        model.Dispose();
-                        plugin.Overlay.SelectedTransform = null;
-                        continue;
-                    }
-                    if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-                    {
-                        ImGui.SetTooltip("Ctrl + Click to erase this object.");
-                    }
-                }
-                
-                DrawTransform(ref model.Transform);
-                // model.DrawInfo();
-            }
-
-            ImGui.Spacing();
-        }
-        
-        Ui.CenteredTextWithLine("Vfx", ImGui.GetColorU32(ImGuiCol.TabActive));
-
-        foreach (var item in AnyderService.ObjectManager.Vfx.ToList())
-        {
-            if (item is not StaticVfx vfx) continue;
-
-            using var pushedId = ImRaii.PushId(id++);
-            if (!DrawHeader(player.Position, ref vfx.Transform, vfx.Path, ref id)) continue;
-            
-            using (new Ui.Hoverable(id.ToString(), 0f, margin: new Vector2(0f, 0f), padding: new Vector2(5f, 5f), highlight: true))
-            {
-                DrawWidgets(player.Position, ref vfx.Transform, vfx.Path);
-                
-                ImGui.SameLine();
-                using (_ = ImRaii.Disabled(!ctrl))
-                {
-                    if (ImGuiComponents.IconButton("###VfxErase", FontAwesomeIcon.Eraser))
-                    {
-                        AnyderService.ObjectManager.Vfx.Remove(vfx);
-                        vfx.Dispose();
-                        plugin.Overlay.SelectedTransform = null;
-                        continue;
-                    }
-                    if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-                    {
-                        ImGui.SetTooltip("Ctrl + Click to erase this object.");
-                    }
-                }
-                
-                DrawTransform(ref vfx.Transform);
-            }
-
             ImGui.Spacing();
         }
     }
@@ -271,11 +207,11 @@ public class MainWindow : CustomWindow, IDisposable
         }
     }
 
-    private bool DrawHeader(Vector3 playerPos, ref Transform transform, string itemPath, ref int id)
+    private bool DrawHeader(Vector3 playerPos, SpawnedObject obj, ref Transform transform, ref int id)
     {
-        var name = plugin.Configuration.PathDictionary.GetValueOrDefault(itemPath, itemPath);
+        var name = plugin.Configuration.PathDictionary.GetValueOrDefault(obj.Path, obj.Name);
         var distance = Vector3.Distance(transform.Position, playerPos);
-        return ImGui.CollapsingHeader($"[{distance:F1}] - {name}###{name}{id++}");
+        return ImGui.CollapsingHeader($"[{distance:F1}] - {name} [{obj.Type}]###{name}{id++}");
     }
 
     private void DrawWidgets(Vector3 playerPos, ref Transform transform, string itemPath)
