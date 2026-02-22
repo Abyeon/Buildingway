@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://github.com/Abyeon/Buildingway/blob/master/Data/icon.png?raw=true" alt="The Buildingway icon. A Loporrit with a hard hat!" width="25%"/>
+</p>
+
 # Buildingway
 
 A plugin for building whatever you want, within in the safety of Hyperborea. Create the most insane jump puzzles, or most beautiful housing builds.
