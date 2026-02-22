@@ -128,7 +128,6 @@ public class MainWindow : CustomWindow, IDisposable
             Plugin.Framework.RunOnFrameworkThread(() =>
             {
                 AnyderService.ObjectManager.Clear();
-                // Plugin.ObjectManager.Clear();
             });
             
             plugin.Overlay.SelectedTransform = null;
@@ -142,7 +141,7 @@ public class MainWindow : CustomWindow, IDisposable
             plugin.Configuration.Save();
         }
         
-        Ui.CenteredTextWithLine("Groups", ImGui.GetColorU32(ImGuiCol.TabActive));
+        Ui.CenteredTextWithLine("Spawned Items", ImGui.GetColorU32(ImGuiCol.TabActive));
         
         var ctrl = ImGui.GetIO().KeyCtrl;
 
