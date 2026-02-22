@@ -55,7 +55,8 @@ public class SavedPathsWindow : CustomWindow, IDisposable
             {
                 if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                 {
-                    AnyderService.ObjectManager.Add(path, player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
+                    var obj = AnyderService.ObjectManager.Add(path, player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
+                    obj.Name = nickname;
                 } else if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
                 {
                     ImGui.OpenPopup("##ItemRightPopup");

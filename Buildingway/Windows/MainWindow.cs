@@ -159,7 +159,7 @@ public class MainWindow : CustomWindow, IDisposable
             {
                 using (new Ui.Hoverable(id.ToString(), 0f, margin: new Vector2(0f, 0f), padding: new Vector2(5f, 5f), highlight: true))
                 {
-                    DrawWidgets(player.Position, ref transform!, obj.Path);
+                    DrawWidgets(player.Position, obj, ref transform!);
                 
                     ImGui.SameLine();
                     using (_ = ImRaii.Disabled(!ctrl))
@@ -216,7 +216,7 @@ public class MainWindow : CustomWindow, IDisposable
         return ImGui.CollapsingHeader($"[{distance:F1}] - {name} [{obj.Type}]###{name}{id++}");
     }
 
-    private void DrawWidgets(Vector3 playerPos, ref Transform transform, string itemPath)
+    private void DrawWidgets(Vector3 playerPos, SpawnedObject obj, ref Transform transform)
     {
         if (ImGuiComponents.IconButton("###WidgetReposition", FontAwesomeIcon.ArrowsToDot))
         {
@@ -244,7 +244,8 @@ public class MainWindow : CustomWindow, IDisposable
             var transformCopy = transform;
             Plugin.Framework.RunOnFrameworkThread(() =>
             {
-                AnyderService.ObjectManager.Add(itemPath, transformCopy.Position, transformCopy.Rotation, transformCopy.Scale, plugin.Configuration.SpawnWithCollision);
+                var clone = AnyderService.ObjectManager.Add(obj.Path, transformCopy.Position, transformCopy.Rotation, transformCopy.Scale, plugin.Configuration.SpawnWithCollision);
+                clone.Name = obj.Name;
             });
         }
                 
@@ -262,7 +263,7 @@ public class MainWindow : CustomWindow, IDisposable
         if (Ui.AddTextConfirmationPopup("###WidgetFavoritePopup", "Give this path a nickname!", ref nickname))
         {
             if (nickname.Length == 0) return;
-            plugin.Configuration.PathDictionary[itemPath] = nickname;
+            plugin.Configuration.PathDictionary[obj.Path] = nickname;
             plugin.Configuration.Save();
         }
     }
