@@ -66,6 +66,39 @@ public static class Ui
 
         return false;
     }
+    
+    /// <summary>
+    /// Adds a popup that can be opened with ImGui.OpenPopup(id)
+    /// Only returns true if the confirmation button was clicked.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="description">The text that appears inside the popup</param>
+    /// <returns>True if the input was updated</returns>
+    public static bool AddConfirmationPopup(string id, string description)
+    {
+        using var popup = ImRaii.Popup(id);
+        if (popup.Success)
+        {
+            ImGui.PushID(id);
+            ImGui.Text(description);
+            ImGui.Separator();
+
+            if (ImGui.Button("Confirm"))
+            {
+                ImGui.CloseCurrentPopup();
+                return true;
+            }
+
+            ImGui.SameLine();
+            if (RightAlignedButton("Cancel"))
+            {
+                ImGui.CloseCurrentPopup();
+                return false;
+            }
+        }
+
+        return false;
+    }
 
     public static void RightAlignCursorForButton(ImU8String label)
     {

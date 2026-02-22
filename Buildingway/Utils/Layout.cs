@@ -28,7 +28,7 @@ public class Layout
         ZoneId = Plugin.ClientState.TerritoryType;
         StartPosition = player.Position;
 
-        Placements = AnyderService.ObjectManager.Objects
+        Placements = objectManager.Objects
                                .Where(x => x.Type != ObjectType.ActorVfx && x.Type != ObjectType.Invalid)
                                .Select(x =>
                                {
@@ -41,7 +41,7 @@ public class Layout
 
 public struct Placement
 {
-    public string Path { get; set; }
+    public string Path { get; set; } = "";
     public string? Name { get; set; }
     public Vector3 Position { get; set; }
     public Quaternion Rotation { get; set; }
@@ -55,14 +55,9 @@ public struct Placement
         Position = position;
         Rotation = rotation;
         Scale = scale;
+        Collision = collision;
     }
     
-    public Placement(string path, Vector3 position, Quaternion rotation, Vector3 scale, bool collision)
-    {
-        Path = path;
-        Name = path;
-        Position = position;
-        Rotation = rotation;
-        Scale = scale;
-    }
+    [JsonConstructor]
+    public Placement() { }
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Buildingway.Commands;
 // using Buildingway.Utils.Interop.Structs;
 // using Buildingway.Utils.Objects;
@@ -47,6 +48,8 @@ public sealed class Plugin : IDalamudPlugin
     internal IDalamudPlugin Hyperborea = null!;
 
     internal bool Enabled { get; set; } = false;
+    internal bool HyperEnabled => Enabled && Hyperborea.GetFoP<bool>("Enabled");
+    internal bool ShouldSpawnWithCollision => HyperEnabled && Configuration.SpawnWithCollision;
 
     public Plugin()
     {
@@ -60,12 +63,6 @@ public sealed class Plugin : IDalamudPlugin
             Enabled = true;
             Hyperborea = hyperborea;
         }
-        
-        // BgObjectFunctions = new BgObjectFunctions();
-        // VfxFunctions = new VfxFunctions();
-        // SharedGroupLayoutFunctions = new SharedGroupLayoutFunctions();
-        //
-        // ObjectManager = new ObjectManager(this, ClientState, Framework);
 
         CommandHandler = new CommandHandler(this);
         
@@ -132,6 +129,7 @@ public sealed class Plugin : IDalamudPlugin
     
     public void LoadLayout(Layout layout)
     {
+        AnyderService.ObjectManager.Clear();
         placementQueue = new Queue<Placement>(layout.Placements);
         Framework.Update += OnUpdate;
     }
@@ -145,7 +143,15 @@ public sealed class Plugin : IDalamudPlugin
         }
         
         var placement = placementQueue.Dequeue();
-        var obj = AnyderService.ObjectManager.Add(placement.Path, placement.Position, placement.Rotation, placement.Scale, placement.Collision);
+        if (placement.Path == string.Empty)
+        {
+            Log.Error("Tried spawning an object with no path.");
+            return;
+        }
+        
+        Log.Debug((placement.Collision && ShouldSpawnWithCollision).ToString());
+        
+        var obj = AnyderService.ObjectManager.Add(placement.Path, placement.Position, placement.Rotation, placement.Scale, placement.Collision && HyperEnabled);
         if (placement.Name != null) obj.Name = placement.Name;
     }
 

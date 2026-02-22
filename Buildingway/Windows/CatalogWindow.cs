@@ -211,7 +211,7 @@ public class CatalogWindow : CustomWindow, IDisposable
             ImGui.TableNextColumn();
             if (ImGui.Selectable(furniture.Name, flags: ImGuiSelectableFlags.SpanAllColumns))
             {
-                var obj = AnyderService.ObjectManager.Add(furniture.GetPath(), player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
+                var obj = AnyderService.ObjectManager.Add(furniture.GetPath(), player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.ShouldSpawnWithCollision);
                 obj.Name = furniture.Name;
             }
             ImGui.TableNextColumn();

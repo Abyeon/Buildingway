@@ -11,6 +11,7 @@ using Buildingway.Utils.Interface;
 // using Buildingway.Utils.Objects;
 // using Buildingway.Utils.Objects.Vfx;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Components;
@@ -41,107 +42,45 @@ public class MainWindow : CustomWindow, IDisposable
 
     public void Dispose() { }
 
-    private string path = "bgcommon/hou/outdoor/general/0332/asset/gar_b0_m0332.sgb";
+    private string path = "";
+    
+    //bgcommon/hou/outdoor/general/0332/asset/gar_b0_m0332.sgb
     
     protected override void Render()
     {
-#if (!DEBUG)
-        if (!plugin.Enabled)
+        switch (plugin.Enabled)
         {
-            ImGui.TextColored(ImGuiColors.DalamudRed, "Please install Hyperborea!");
-            if (ImGui.Button("Add Repo"))
+            case false:
             {
-                const string repo = "https://puni.sh/api/repository/kawaii";
-                if (!DalamudReflector.HasRepo(repo)) DalamudReflector.AddRepo(repo, true);
+                ImGui.TextColored(ImGuiColors.DalamudRed, "Hyperborea not installed, collisions will be disabled.");
+                ImGui.SameLine();
+                if (ImGui.Button("Add Repo"))
+                {
+                    const string repo = "https://puni.sh/api/repository/kawaii";
+                    if (!DalamudReflector.HasRepo(repo)) DalamudReflector.AddRepo(repo, true);
+                }
+
+                break;
             }
-        
-            return;
+            case true when !plugin.Hyperborea.GetFoP<bool>("Enabled"):
+                ImGui.TextColored(ImGuiColors.DalamudRed, "Hyperborea not enabled, collisions will be disabled.");
+                break;
         }
-        
-        if (!plugin.Hyperborea.GetFoP<bool>("Enabled"))
-        {
-            ImGui.TextColored(ImGuiColors.DalamudRed, "Please enable Hyperborea!");
-            return;
-        }
-#endif
-        
-        fileDialogManager.Draw();
         
         if (Plugin.ObjectTable.LocalPlayer == null)
         {
             ImGui.TextUnformatted("Player is null!");
             return;
         }
+        
+        fileDialogManager.Draw();
         var player = Plugin.ObjectTable.LocalPlayer;
         
-        if (ImGui.Button("Save Layout"))
-        {
-            var json = Serializer.SerializeCurrent();
-            fileDialogManager.SaveFileDialog("Save Layout File", ".json", "layout", ".json", (success, pathToFile) =>
-            {
-                if (!success) return;
-                File.WriteAllText(pathToFile, json);
-            });
-        }
-
-        ImGui.SameLine();
-        if (ImGui.Button("Load Layout"))
-        {
-            fileDialogManager.OpenFileDialog("Open Layout File", ".json", (success, pathToFile) =>
-            {
-                if (!success) return;
-                var json = File.ReadAllText(pathToFile);
-                var layout = Serializer.Deserialize(json);
-                
-                plugin.Overlay.SelectedTransform = null;
-                plugin.LoadLayout(layout);
-                // Plugin.ObjectManager.LoadLayout(layout);
-            });
-        }
-        
-        if (ImGui.Button("Furniture Catalog")) plugin.ToggleCatalogUi();
-
-        ImGui.SameLine();
-        if (ImGui.Button("Saved Paths")) plugin.ToggleSavedPathsUi();
-        
-        ImGui.InputText("Path", ref path);
-
-        ImGui.SameLine();
-        if (ImGui.Button("Spawn"))
-        {
-            Plugin.Framework.RunOnFrameworkThread(() =>
-            {
-                AnyderService.ObjectManager.Add(path, player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.Configuration.SpawnWithCollision);
-            });
-            
-            plugin.Overlay.SelectedTransform = null;
-        }
-
-        if (plugin.Overlay.SelectedTransform != null)
-        {
-            if (ImGui.Button("Stop Editing")) plugin.Overlay.SelectedTransform = null;
-            ImGui.SameLine();
-        }
-        
-        if (ImGui.Button("Clear All"))
-        {
-            Plugin.Framework.RunOnFrameworkThread(() =>
-            {
-                AnyderService.ObjectManager.Clear();
-            });
-            
-            plugin.Overlay.SelectedTransform = null;
-        }
-
-        ImGui.SameLine();
-        var collision = plugin.Configuration.SpawnWithCollision;
-        if (ImGui.Checkbox("Spawn with collision", ref collision))
-        {
-            plugin.Configuration.SpawnWithCollision = collision;
-            plugin.Configuration.Save();
-        }
-        
+        DrawHeader(player);
         Ui.CenteredTextWithLine("Spawned Items", ImGui.GetColorU32(ImGuiCol.TabActive));
+        
+        using var child = ImRaii.Child("BuildingwayMainChild");
+        if (!child.Success) return;
         
         var ctrl = ImGui.GetIO().KeyCtrl;
 
@@ -152,7 +91,7 @@ public class MainWindow : CustomWindow, IDisposable
             using var pushedId = ImRaii.PushId(id++);
 
             var transform = obj.GetTransform();
-            var opened = DrawHeader(player.Position, obj, ref transform!, ref id);
+            var opened = DrawObjHeader(player.Position, obj, ref transform!, ref id);
             var hovered = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled);
 
             if (opened)
@@ -209,7 +148,96 @@ public class MainWindow : CustomWindow, IDisposable
         }
     }
 
-    private bool DrawHeader(Vector3 playerPos, SpawnedObject obj, ref Transform transform, ref int id)
+    private void DrawHeader(IPlayerCharacter player)
+    {
+        if (ImGui.Button("Save Layout"))
+        {
+            var json = Serializer.SerializeCurrent();
+            fileDialogManager.SaveFileDialog("Save Layout File", ".json", "layout", ".json", (success, pathToFile) =>
+            {
+                if (!success) return;
+                File.WriteAllText(pathToFile, json);
+            });
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button("Load Layout"))
+        {
+            fileDialogManager.OpenFileDialog("Open Layout File", ".json", (success, pathToFile) =>
+            {
+                if (!success) return;
+                var json = File.ReadAllText(pathToFile);
+                var layout = Serializer.Deserialize(json);
+                
+                plugin.Overlay.SelectedTransform = null;
+                plugin.LoadLayout(layout);
+            });
+        }
+        
+        if (ImGui.Button("Furniture Catalog")) plugin.ToggleCatalogUi();
+
+        ImGui.SameLine();
+        if (ImGui.Button("Saved Paths")) plugin.ToggleSavedPathsUi();
+        
+        ImGui.InputText("Path", ref path);
+
+        ImGui.SameLine();
+        if (ImGui.Button("Spawn"))
+        {
+            Plugin.Framework.RunOnFrameworkThread(() =>
+            {
+                AnyderService.ObjectManager.Add(path, player.Position, Quaternion.CreateFromYawPitchRoll(player.Rotation, 0, 0), collide: plugin.ShouldSpawnWithCollision);
+            });
+            
+            plugin.Overlay.SelectedTransform = null;
+        }
+
+        if (plugin.Overlay.SelectedTransform != null)
+        {
+            if (ImGui.Button("Stop Editing")) plugin.Overlay.SelectedTransform = null;
+            ImGui.SameLine();
+        }
+        
+        if (ImGui.Button("Clear All"))
+        {
+            ImGui.OpenPopup("###BuildingwayClearAll");
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button("Enable all Collision"))
+        {
+            ImGui.OpenPopup("###BuildingwayCollideAll");
+        }
+        
+        if (Ui.AddConfirmationPopup("###BuildingwayClearAll", "Are you sure?\nThis will remove all currently placed objects!"))
+        {
+            Plugin.Framework.RunOnFrameworkThread(() =>
+            {
+                AnyderService.ObjectManager.Clear();
+            });
+                
+            plugin.Overlay.SelectedTransform = null;
+        }
+        
+        if (Ui.AddConfirmationPopup("###BuildingwayCollideAll", "Are you sure?\nThis will give all your objects collision!"))
+        {
+            Plugin.Framework.RunOnFrameworkThread(() =>
+            {
+                foreach (var obj in AnyderService.ObjectManager.Objects)
+                    obj.Group?.SetCollision(true);
+            });
+        }
+        
+        ImGui.SameLine();
+        var collision = plugin.Configuration.SpawnWithCollision;
+        if (ImGui.Checkbox("Spawn with collision", ref collision))
+        {
+            plugin.Configuration.SpawnWithCollision = collision;
+            plugin.Configuration.Save();
+        }
+    }
+
+    private bool DrawObjHeader(Vector3 playerPos, SpawnedObject obj, ref Transform transform, ref int id)
     {
         var name = plugin.Configuration.PathDictionary.GetValueOrDefault(obj.Path, obj.Name);
         var distance = Vector3.Distance(transform.Position, playerPos);
@@ -244,7 +272,7 @@ public class MainWindow : CustomWindow, IDisposable
             var transformCopy = transform;
             Plugin.Framework.RunOnFrameworkThread(() =>
             {
-                var clone = AnyderService.ObjectManager.Add(obj.Path, transformCopy.Position, transformCopy.Rotation, transformCopy.Scale, plugin.Configuration.SpawnWithCollision);
+                var clone = AnyderService.ObjectManager.Add(obj.Path, transformCopy.Position, transformCopy.Rotation, transformCopy.Scale, plugin.ShouldSpawnWithCollision);
                 clone.Name = obj.Name;
             });
         }
