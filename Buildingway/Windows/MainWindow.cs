@@ -16,6 +16,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
+using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using ECommons.Reflection;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
@@ -116,7 +117,7 @@ public class MainWindow : CustomWindow, IDisposable
                         }
                     }
 
-                    if (obj.Type is ObjectType.SharedGroup)
+                    if (plugin.HyperEnabled && obj.Type is ObjectType.SharedGroup)
                     {
                         ImGui.SameLine();
                         if (ImGui.Checkbox("Collision", ref obj.Group!.Collide))
@@ -202,12 +203,6 @@ public class MainWindow : CustomWindow, IDisposable
         {
             ImGui.OpenPopup("###BuildingwayClearAll");
         }
-
-        ImGui.SameLine();
-        if (ImGui.Button("Enable all Collision"))
-        {
-            ImGui.OpenPopup("###BuildingwayCollideAll");
-        }
         
         if (Ui.AddConfirmationPopup("###BuildingwayClearAll", "Are you sure?\nThis will remove all currently placed objects!"))
         {
@@ -218,22 +213,31 @@ public class MainWindow : CustomWindow, IDisposable
                 
             plugin.Overlay.SelectedTransform = null;
         }
-        
-        if (Ui.AddConfirmationPopup("###BuildingwayCollideAll", "Are you sure?\nThis will give all your objects collision!"))
+
+        if (plugin.HyperEnabled)
         {
-            Plugin.Framework.RunOnFrameworkThread(() =>
+            ImGui.SameLine();
+            if (ImGui.Button("Enable all Collision"))
             {
-                foreach (var obj in AnyderService.ObjectManager.Objects)
-                    obj.Group?.SetCollision(true);
-            });
-        }
+                ImGui.OpenPopup("###BuildingwayCollideAll");
+            }
         
-        ImGui.SameLine();
-        var collision = plugin.Configuration.SpawnWithCollision;
-        if (ImGui.Checkbox("Spawn with collision", ref collision))
-        {
-            plugin.Configuration.SpawnWithCollision = collision;
-            plugin.Configuration.Save();
+            if (Ui.AddConfirmationPopup("###BuildingwayCollideAll", "Are you sure?\nThis will give all your objects collision!"))
+            {
+                Plugin.Framework.RunOnFrameworkThread(() =>
+                {
+                    foreach (var obj in AnyderService.ObjectManager.Objects)
+                        obj.Group?.SetCollision(true);
+                });
+            }
+            
+            ImGui.SameLine();
+            var collision = plugin.Configuration.SpawnWithCollision;
+            if (ImGui.Checkbox("Spawn with collision", ref collision))
+            {
+                plugin.Configuration.SpawnWithCollision = collision;
+                plugin.Configuration.Save();
+            }
         }
     }
 
@@ -272,7 +276,8 @@ public class MainWindow : CustomWindow, IDisposable
             var transformCopy = transform;
             Plugin.Framework.RunOnFrameworkThread(() =>
             {
-                var clone = AnyderService.ObjectManager.Add(obj.Path, transformCopy.Position, transformCopy.Rotation, transformCopy.Scale, plugin.ShouldSpawnWithCollision);
+                var collide = obj is {Type: ObjectType.SharedGroup, Group.Collide: true } && plugin.HyperEnabled;
+                var clone = AnyderService.ObjectManager.Add(obj.Path, transformCopy.Position, transformCopy.Rotation, transformCopy.Scale, collide);
                 clone.Name = obj.Name;
             });
         }
