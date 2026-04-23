@@ -286,6 +286,10 @@ public class MainWindow : CustomWindow, IDisposable
             {
                 var collide = obj is {Type: ObjectType.SharedGroup, Group.Collide: true } && plugin.HyperEnabled;
                 var clone = AnyderService.ObjectManager.Add(obj.Path, transformCopy.Position, transformCopy.Rotation, transformCopy.Scale, collide);
+                
+                if (obj is { Type: ObjectType.SharedGroup } && clone.Group != null) 
+                    clone.Group.Color = obj.Group!.Color;
+                
                 clone.Name = obj.Name;
             });
         }
@@ -332,7 +336,7 @@ public class MainWindow : CustomWindow, IDisposable
     private static void DrawStain(Group obj)
     {
         var color = obj.Color;
-        if (ImGui.ColorEdit4("Stain", ref color, ImGuiColorEditFlags.NoInputs))
+        if (ImGui.ColorEdit4("Stain", ref color, ImGuiColorEditFlags.DisplayHex))
         {
             obj.Color = color;
         }
