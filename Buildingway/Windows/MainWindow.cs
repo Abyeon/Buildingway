@@ -18,8 +18,12 @@ using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using Dalamud.Utility.Numerics;
+using ECommons.ImGuiMethods;
 using ECommons.Reflection;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using FFXIVClientStructs.FFXIV.Client.Graphics;
+using Transform = Anyder.Objects.Transform;
 
 namespace Buildingway.Windows;
 
@@ -127,6 +131,10 @@ public class MainWindow : CustomWindow, IDisposable
                     }
                 
                     DrawTransform(ref transform);
+                    if (obj.Type is ObjectType.SharedGroup)
+                    {
+                        if (obj.Group != null) DrawStain(obj.Group);
+                    }
                 }
             }
             
@@ -301,7 +309,7 @@ public class MainWindow : CustomWindow, IDisposable
         }
     }
 
-    private void DrawTransform(ref Transform transform)
+    private static void DrawTransform(ref Transform transform)
     {
         if (ImGui.DragFloat3("Position", ref transform.Position, 0.05f))
         {
@@ -314,9 +322,19 @@ public class MainWindow : CustomWindow, IDisposable
             transform.Rotation = euler.ToQuaternion();
             transform.Update();
         }
+        
         if (ImGui.DragFloat3("Scale", ref transform.Scale, 0.05f))
         {
             transform.Update();
+        }
+    }
+
+    private static void DrawStain(Group obj)
+    {
+        var color = obj.Color;
+        if (ImGui.ColorEdit4("Stain", ref color, ImGuiColorEditFlags.NoInputs))
+        {
+            obj.Color = color;
         }
     }
 }

@@ -64,7 +64,7 @@ public abstract class CustomWindow : Window
         
         var vec4 = Ui.GetColorVec4(!IsFocused && isPinned ? ImGuiCol.TitleBgActive : index);
         if (IsFocused || isPinned) vec4.W = 1; // Make titlebar opaque if the window is focused.
-        var titleCol = vec4.ToByteColor().RGBA;
+        var titleCol = ImGui.ColorConvertFloat4ToU32(vec4);
         
         // Re-assign title bar color
         ImGui.PushStyleColor(index, titleCol);
