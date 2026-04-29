@@ -18,6 +18,7 @@ using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using Dalamud.Interface.Windowing;
 using Dalamud.Utility.Numerics;
 using ECommons.ImGuiMethods;
 using ECommons.Reflection;
@@ -103,6 +104,9 @@ public class MainWindow : CustomWindow, IDisposable
             {
                 using (new Ui.Hoverable(id.ToString(), 0f, margin: new Vector2(0f, 0f), padding: new Vector2(5f, 5f), highlight: true))
                 {
+#if DEBUG
+                    DrawDebug(obj);
+#endif
                     DrawWidgets(player.Position, obj, ref transform!);
                 
                     ImGui.SameLine();
@@ -154,6 +158,42 @@ public class MainWindow : CustomWindow, IDisposable
             }
             
             ImGui.Spacing();
+        }
+    }
+
+    private void DrawDebug(SpawnedObject obj)
+    {
+        if (obj.Type != ObjectType.SharedGroup || obj.Group == null) return;
+        unsafe
+        {
+            var data = obj.Group.Data;
+            IntPtr address = (IntPtr)data;
+            string addressString = "0x" + address.ToString("X");
+
+            if (ImGui.Selectable(addressString))
+            {
+                ImGui.SetClipboardText(addressString);
+            }
+
+            if (ImGui.Button("Update Transform"))
+            {
+                var t = data->GetTransformImpl();
+                data->SetTransformImpl(t);
+            }
+            foreach (var ptr in data->Instances.Instances)
+            {
+                if (ptr.Value == null) continue;
+                var instance = ptr.Value->Instance;
+                
+                IntPtr addr = (IntPtr)instance;
+                string addrString = "0x" + addr.ToString("X");
+                
+                if (ImGui.Selectable(addrString))
+                {
+                    ImGui.SetClipboardText(addrString);
+                }
+            }
+            
         }
     }
 
@@ -285,10 +325,9 @@ public class MainWindow : CustomWindow, IDisposable
             Plugin.Framework.RunOnFrameworkThread(() =>
             {
                 var collide = obj is {Type: ObjectType.SharedGroup, Group.Collide: true } && plugin.HyperEnabled;
-                var clone = AnyderService.ObjectManager.Add(obj.Path, transformCopy.Position, transformCopy.Rotation, transformCopy.Scale, collide);
+                var color = obj.Group?.Color;
                 
-                if (obj is { Type: ObjectType.SharedGroup } && clone.Group != null) 
-                    clone.Group.Color = obj.Group!.Color;
+                var clone = AnyderService.ObjectManager.Add(obj.Path, transformCopy.Position, transformCopy.Rotation, transformCopy.Scale, collide, color);
                 
                 clone.Name = obj.Name;
             });

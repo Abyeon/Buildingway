@@ -29,7 +29,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IGameInteropProvider GameInteropProvider { get; private set; } = null!;
     [PluginService] internal static ISigScanner SigScanner { get; private set; } = null!;
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
-
+    
     // internal static BgObjectFunctions BgObjectFunctions { get; private set; } = null!;
     // internal static VfxFunctions VfxFunctions { get; private set; } = null!;
     // internal static SharedGroupLayoutFunctions SharedGroupLayoutFunctions { get; private set; } = null!;
@@ -151,7 +151,7 @@ public sealed class Plugin : IDalamudPlugin
         
         Log.Debug((placement.Collision && ShouldSpawnWithCollision).ToString());
         
-        var obj = AnyderService.ObjectManager.Add(placement.Path, placement.Position, placement.Rotation, placement.Scale, placement.Collision && HyperEnabled);
+        var obj = AnyderService.ObjectManager.Add(placement.Path, placement.Position, placement.Rotation, placement.Scale, placement.Collision && HyperEnabled, placement.Color);
         if (placement.Name != null) obj.Name = placement.Name;
     }
 
