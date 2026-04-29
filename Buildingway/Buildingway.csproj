@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Dalamud.NET.Sdk/14.0.2">
+<Project Sdk="Dalamud.NET.Sdk/15.0.0">
   <PropertyGroup>
     <Version>1.0.0.7</Version>
     <PackageProjectUrl>https://github.com/Abyeon/Buildingway</PackageProjectUrl>
@@ -9,7 +9,7 @@
     <Platforms>AnyCPU</Platforms>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Update="DalamudPackager" Version="14.0.2" />
+    <PackageReference Update="DalamudPackager" Version="15.0.0" />
     <PackageReference Update="DotNet.ReproducibleBuilds" Version="2.0.2" />
     <PackageReference Include="ECommons" Version="3.1.0.22" />
   </ItemGroup>
