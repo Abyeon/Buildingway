@@ -24,6 +24,8 @@ using ECommons.ImGuiMethods;
 using ECommons.Reflection;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Graphics;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
+using ObjectType = Anyder.Objects.ObjectType;
 using Transform = Anyder.Objects.Transform;
 
 namespace Buildingway.Windows;
@@ -52,7 +54,7 @@ public class MainWindow : CustomWindow, IDisposable
     
     //bgcommon/hou/outdoor/general/0332/asset/gar_b0_m0332.sgb
     
-    protected override void Render()
+    protected override unsafe void Render()
     {
         switch (plugin.Enabled)
         {
@@ -137,7 +139,33 @@ public class MainWindow : CustomWindow, IDisposable
                     DrawTransform(ref transform);
                     if (obj.Type is ObjectType.SharedGroup)
                     {
-                        if (obj.Group != null) DrawStain(obj.Group);
+                        if (obj.Group != null)
+                        {
+                            DrawStain(obj.Group);
+                            
+                            if (ImGui.Button("Try Enabling All"))
+                            {
+                                var data = obj.Group.Data;
+                                // data->IsActive = true;
+                                data->SetActive(true);
+                                // var timelines = data->TimeLineContainer.Instances;
+                                // foreach (var timeline in timelines)
+                                // {
+                                //     var ptr = timeline.Value;
+                                //     if (ptr == null) continue;
+                                //
+                                //     ptr->IsActive = true;
+                                //     ptr->SetActive(true);
+                                // }
+                                //
+                                // foreach (var ptr in data->Instances.Instances)
+                                // {
+                                //     if (ptr.Value == null) continue;
+                                //     var instance = ptr.Value->Instance;
+                                //     instance->SetActive(true);
+                                // }
+                            }
+                        }
                     }
                 }
             }
@@ -372,12 +400,17 @@ public class MainWindow : CustomWindow, IDisposable
         }
     }
 
-    private static void DrawStain(Group obj)
+    private static unsafe void DrawStain(Group obj)
     {
-        var color = obj.Color;
+        var color = obj.Color ?? Vector4.Zero;
         if (ImGui.ColorEdit4("Stain", ref color, ImGuiColorEditFlags.DisplayHex))
         {
             obj.Color = color;
+        }
+
+        if (ImGui.Button("Reset Stain"))
+        {
+            obj.Color = null;
         }
     }
 }

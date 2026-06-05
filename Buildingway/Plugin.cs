@@ -61,7 +61,7 @@ public sealed class Plugin : IDalamudPlugin
         if (success)
         {
             Enabled = true;
-            Hyperborea = hyperborea;
+            Hyperborea = (IDalamudPlugin)hyperborea;
         }
 
         CommandHandler = new CommandHandler(this);
@@ -121,7 +121,7 @@ public sealed class Plugin : IDalamudPlugin
         }
         else
         {
-            Hyperborea = hyperborea;
+            Hyperborea = (IDalamudPlugin)hyperborea;
         }
     }
 

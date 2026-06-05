@@ -162,6 +162,8 @@ public class CatalogWindow : CustomWindow, IDisposable
             return;
         }
 
+        DrawDebug();
+
         if (ImGui.Button(indoors ? "Show Outdoors" : "Show Indoors"))
         {
             indoors = !indoors;
@@ -193,6 +195,33 @@ public class CatalogWindow : CustomWindow, IDisposable
         if (!child.Success) return;
         
         DrawItems();
+    }
+
+    [Conditional("DEBUG")]
+    private void DrawDebug()
+    {
+        if (ImGui.Button("Spawn All Items"))
+        {
+            var queue = new Queue<Furnishing>(currentSearch);
+            Plugin.Framework.RunOnTick(() => RecursivelyPlaceItems(queue, Plugin.ObjectTable.LocalPlayer!.Position, Vector3.Zero));
+        }
+
+        return;
+        
+        void RecursivelyPlaceItems(Queue<Furnishing> furnitureQueue, Vector3 position, Vector3 offset)
+        {
+            if (furnitureQueue.Count == 0) return;
+            var item = furnitureQueue.Dequeue();
+            
+            AnyderService.ObjectManager.Add(item.GetPath(), position + offset, Quaternion.CreateFromYawPitchRoll(0, 0, 0), collide: plugin.ShouldSpawnWithCollision);
+            offset.X = (offset.X + 5) % 100;
+            if (offset.X == 0)
+            {
+                offset.Z += 5;
+            }
+            
+            Plugin.Framework.RunOnTick(() => RecursivelyPlaceItems(furnitureQueue, position, offset));
+        }
     }
 
     private void DrawItems()
