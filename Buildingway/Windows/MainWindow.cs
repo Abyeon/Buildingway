@@ -148,22 +148,13 @@ public class MainWindow : CustomWindow, IDisposable
                                 var data = obj.Group.Data;
                                 // data->IsActive = true;
                                 data->SetActive(true);
-                                // var timelines = data->TimeLineContainer.Instances;
-                                // foreach (var timeline in timelines)
-                                // {
-                                //     var ptr = timeline.Value;
-                                //     if (ptr == null) continue;
-                                //
-                                //     ptr->IsActive = true;
-                                //     ptr->SetActive(true);
-                                // }
-                                //
-                                // foreach (var ptr in data->Instances.Instances)
-                                // {
-                                //     if (ptr.Value == null) continue;
-                                //     var instance = ptr.Value->Instance;
-                                //     instance->SetActive(true);
-                                // }
+                                
+                                foreach (var ptr in data->Instances.Instances)
+                                {
+                                    if (ptr.Value == null) continue;
+                                    var instance = ptr.Value->Instance;
+                                    instance->SetActive(true);
+                                }
                             }
                         }
                     }
@@ -198,9 +189,22 @@ public class MainWindow : CustomWindow, IDisposable
             IntPtr address = (IntPtr)data;
             string addressString = "0x" + address.ToString("X");
 
+            var layerAddr = (IntPtr)data->Layer;
+            string layerAddrString = "0x" + layerAddr.ToString("X");
+
+            if (ImGui.Selectable(layerAddrString))
+            {
+                ImGui.SetClipboardText(layerAddrString);
+            }
+
             if (ImGui.Selectable(addressString))
             {
                 ImGui.SetClipboardText(addressString);
+            }
+
+            if (ImGui.Button("SetWallpaper"))
+            {
+                obj.Group.SetWallpaper(3);
             }
 
             if (ImGui.Button("Update Transform"))
