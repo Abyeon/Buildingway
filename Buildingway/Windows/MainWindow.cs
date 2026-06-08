@@ -136,7 +136,7 @@ public class MainWindow : CustomWindow, IDisposable
                     DrawTransform(ref transform);
                     if (obj.Type is ObjectType.SharedGroup)
                     {
-                        if (obj.Group != null)
+                        if (obj.Group != null && obj.Group.HasStains())
                         {
                             DrawStain(obj.Group);
                         }
