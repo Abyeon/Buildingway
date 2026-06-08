@@ -34,7 +34,7 @@ public class Layout
                                {
                                    var transform = x.GetTransform();
                                    var collide = x.Group is { Collide: true };
-                                   var color = x.Group?.Color ?? Vector4.Zero;
+                                   var color = x.Group?.Color;
                                    return new Placement(x.Path, x.Name, transform!.Position, transform!.Rotation, transform!.Scale, collide, color);
                                }).ToList();
     }
@@ -48,9 +48,9 @@ public struct Placement
     public Quaternion Rotation { get; set; }
     public Vector3 Scale { get; set; }
     public bool Collision { get; set; }
-    public Vector4 Color { get; set; }
+    public Vector4? Color { get; set; }
 
-    public Placement(string path, string name, Vector3 position, Quaternion rotation, Vector3 scale, bool collision, Vector4 color)
+    public Placement(string path, string name, Vector3 position, Quaternion rotation, Vector3 scale, bool collision, Vector4? color)
     {
         Path = path;
         Name = name;
