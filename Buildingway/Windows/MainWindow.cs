@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -51,8 +52,6 @@ public class MainWindow : CustomWindow, IDisposable
     public void Dispose() { }
 
     private string path = "";
-    
-    //bgcommon/hou/outdoor/general/0332/asset/gar_b0_m0332.sgb
     
     protected override unsafe void Render()
     {
@@ -106,9 +105,7 @@ public class MainWindow : CustomWindow, IDisposable
             {
                 using (new Ui.Hoverable(id.ToString(), 0f, margin: new Vector2(0f, 0f), padding: new Vector2(5f, 5f), highlight: true))
                 {
-#if DEBUG
                     DrawDebug(obj);
-#endif
                     DrawWidgets(player.Position, obj, ref transform!);
                 
                     ImGui.SameLine();
@@ -142,20 +139,6 @@ public class MainWindow : CustomWindow, IDisposable
                         if (obj.Group != null)
                         {
                             DrawStain(obj.Group);
-                            
-                            if (ImGui.Button("Try Enabling All"))
-                            {
-                                var data = obj.Group.Data;
-                                // data->IsActive = true;
-                                data->SetActive(true);
-                                
-                                foreach (var ptr in data->Instances.Instances)
-                                {
-                                    if (ptr.Value == null) continue;
-                                    var instance = ptr.Value->Instance;
-                                    instance->SetActive(true);
-                                }
-                            }
                         }
                     }
                 }
@@ -180,6 +163,7 @@ public class MainWindow : CustomWindow, IDisposable
         }
     }
 
+    [Conditional("DEBUG")]
     private void DrawDebug(SpawnedObject obj)
     {
         if (obj.Type != ObjectType.SharedGroup || obj.Group == null) return;
