@@ -16,9 +16,9 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
-using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
+using Dalamud.Utility.Numerics;
 using ECommons.Reflection;
 using ObjectType = Anyder.Objects.ObjectType;
 using Transform = Anyder.Objects.Transform;
@@ -49,7 +49,7 @@ public class MainWindow : GradientWindow, IDisposable
     private float bottomWidgetHeight = 200f;
     private SpawnedObject? selectedObject = null;
     
-    protected override unsafe void Render()
+    protected override void Render()
     {
         switch (plugin.Enabled)
         {
@@ -342,6 +342,7 @@ public class MainWindow : GradientWindow, IDisposable
             
             // Handle highlighting for supported objects
             hovered = hovered || ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled);
+            
             if (obj.Type is ObjectType.SharedGroup or ObjectType.Model)
             {
                 switch (hovered)
@@ -354,6 +355,11 @@ public class MainWindow : GradientWindow, IDisposable
                         break;
                 }
             }
+
+            if (hovered)
+            {
+                DrawLineToGamePos(transform.Position, ImGuiColors.DalamudViolet.ToByteColor().RGBA);
+            }
             
             ImGui.Spacing();
         }
@@ -363,12 +369,23 @@ public class MainWindow : GradientWindow, IDisposable
     {
         var name = plugin.Configuration.PathDictionary.GetValueOrDefault(obj.Path, obj.Name);
         var distance = Vector3.Distance(transform.Position, playerPos);
+        using var pushedId = ImRaii.PushId(id++);
         using (new Ui.Hoverable(id.ToString(), 0f, margin: new Vector2(0f, 0f), padding: new Vector2(5f, 5f), highlight: true))
         {
-            ImGui.Text($"[{distance:F1}] - {name} [{obj.Type}]###{name}{id++}");
+            ImGui.Text($"[{distance:F1}] - {name} [{obj.Type}]");
         }
 
         return ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled) && ImGui.IsMouseClicked(ImGuiMouseButton.Left);
+    }
+    
+    private void DrawLineToGamePos(Vector3 pos, uint color)
+    {
+        if (Plugin.GameGui.WorldToScreen(pos, out var screenPos))
+        {
+            var draw = ImGui.GetForegroundDrawList();
+            draw.AddLine(ImGui.GetMousePos(), screenPos, color);
+            draw.AddCircleFilled(screenPos, 3f, color);
+        }
     }
 
     private void DrawWidgets(Vector3 playerPos, SpawnedObject obj, ref Transform transform)
@@ -447,7 +464,7 @@ public class MainWindow : GradientWindow, IDisposable
         }
     }
 
-    private static unsafe void DrawStain(Group obj)
+    private static void DrawStain(Group obj)
     {
         var color = obj.Color ?? Vector4.Zero;
         if (ImGui.ColorEdit4("Stain", ref color, ImGuiColorEditFlags.DisplayHex))
