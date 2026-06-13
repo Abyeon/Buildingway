@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Buildingway", "Buildingway\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anyder", "Anyder\Anyder\Anyder.csproj", "{38F17778-3A83-4763-B102-BDE39208C2DF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AbeUtils", "AbeUtils\AbeUtils\AbeUtils.csproj", "{06165BB4-278D-43B8-B088-3E64E3D75F92}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Release|Any CPU = Release|Any CPU
@@ -21,6 +23,10 @@ Global
 		{13C812E9-0D42-4B95-8646-40EEBF30636F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{13C812E9-0D42-4B95-8646-40EEBF30636F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{13C812E9-0D42-4B95-8646-40EEBF30636F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06165BB4-278D-43B8-B088-3E64E3D75F92}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06165BB4-278D-43B8-B088-3E64E3D75F92}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06165BB4-278D-43B8-B088-3E64E3D75F92}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06165BB4-278D-43B8-B088-3E64E3D75F92}.Debug|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

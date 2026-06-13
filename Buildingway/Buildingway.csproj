@@ -14,6 +14,7 @@
     <PackageReference Include="ECommons" Version="3.2.0.19" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\AbeUtils\AbeUtils\AbeUtils.csproj" />
     <ProjectReference Include="..\Anyder\Anyder\Anyder.csproj" />
   </ItemGroup>
 </Project>

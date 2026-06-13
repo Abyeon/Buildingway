@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
+using AbeUtils.Windows;
 using Anyder;
 using Buildingway.Utils;
 using Buildingway.Utils.Interface;
@@ -17,7 +18,7 @@ using Lumina.Extensions;
 
 namespace Buildingway.Windows;
 
-public class CatalogWindow : CustomWindow, IDisposable
+public class CatalogWindow : GradientWindow, IDisposable
 {
     private readonly Plugin plugin;
 

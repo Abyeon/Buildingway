@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Numerics;
+using AbeUtils.Windows;
 using Anyder;
 using Buildingway.Utils;
 using Buildingway.Utils.Interface;
@@ -12,7 +13,7 @@ using Dalamud.Interface.Windowing;
 
 namespace Buildingway.Windows;
 
-public class SavedPathsWindow : CustomWindow, IDisposable
+public class SavedPathsWindow : GradientWindow, IDisposable
 {
     private readonly Plugin plugin;
     

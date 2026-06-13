@@ -1,3 +1,6 @@
 [submodule "Anyder"]
 	path = Anyder
 	url = https://github.com/Abyeon/Anyder
+[submodule "AbeUtils"]
+	path = AbeUtils
+	url = https://github.com/Abyeon/AbeUtils

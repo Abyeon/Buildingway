@@ -4,13 +4,12 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using AbeUtils.Extended;
+using AbeUtils.Windows;
 using Anyder;
 using Anyder.Objects;
-using Anyder.Objects.Vfx;
 using Buildingway.Utils;
 using Buildingway.Utils.Interface;
-// using Buildingway.Utils.Objects;
-// using Buildingway.Utils.Objects.Vfx;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Interface;
@@ -20,18 +19,13 @@ using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
-using Dalamud.Utility.Numerics;
-using ECommons.ImGuiMethods;
 using ECommons.Reflection;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using FFXIVClientStructs.FFXIV.Client.Graphics;
-using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using ObjectType = Anyder.Objects.ObjectType;
 using Transform = Anyder.Objects.Transform;
 
 namespace Buildingway.Windows;
 
-public class MainWindow : CustomWindow, IDisposable
+public class MainWindow : GradientWindow, IDisposable
 {
     private readonly Plugin plugin;
     
@@ -52,6 +46,8 @@ public class MainWindow : CustomWindow, IDisposable
     public void Dispose() { }
 
     private string path = "";
+    private float bottomWidgetHeight = 200f;
+    private SpawnedObject? selectedObject = null;
     
     protected override unsafe void Render()
     {
@@ -84,85 +80,58 @@ public class MainWindow : CustomWindow, IDisposable
         var player = Plugin.ObjectTable.LocalPlayer;
         
         DrawHeader(player);
+        
         Ui.CenteredTextWithLine("Spawned Items", ImGui.GetColorU32(ImGuiCol.TabActive));
-        
-        using var child = ImRaii.Child("BuildingwayMainChild");
-        if (!child.Success) return;
-        
-        var ctrl = ImGui.GetIO().KeyCtrl;
 
-        var id = 0;
-        foreach (var obj in AnyderService.ObjectManager.Objects.ToList())
+        var contentAvail = ImGui.GetContentRegionAvail();
+        
+        const float splitterThickness = 4f; 
+        const float minTopHeight = 100f;
+        const float minBottomHeight = 150f;
+        
+        var maxBottomHeight = contentAvail.Y - minTopHeight - splitterThickness;
+        if (bottomWidgetHeight > maxBottomHeight) bottomWidgetHeight = maxBottomHeight;
+        if (bottomWidgetHeight < minBottomHeight) bottomWidgetHeight = minBottomHeight;
+        
+        var topListHeight = contentAvail.Y - bottomWidgetHeight - splitterThickness - ImGui.GetFrameHeight();
+        if (selectedObject is null)
         {
-            if (obj.Type is ObjectType.ActorVfx || !obj.IsValid) continue;
-            using var pushedId = ImRaii.PushId(id++);
+            topListHeight = contentAvail.Y;
+        }
+        
+        using (var child = ImRaii.Child("BuildingwayMainChild", new Vector2(0, topListHeight), false))
+        {
+            if (child.Success)
+                DrawList(player);
+        }
 
-            var transform = obj.GetTransform();
-            var opened = DrawObjHeader(player.Position, obj, ref transform!, ref id);
-            var hovered = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled);
+        if (selectedObject is null) return;
 
-            if (opened)
+        var cursorPos = ImGui.GetCursorScreenPos();
+        var splitMax = new Vector2(cursorPos.X + contentAvail.X, cursorPos.Y + splitterThickness);
+
+        var tempTop = topListHeight;
+        var tempBot = bottomWidgetHeight;
+
+        if (ImEx.Behavior.Splitter(cursorPos, splitMax, "###InspectorSplitter"u8, ImGuiAxis.Y, ref tempTop,
+                                   ref tempBot, minTopHeight, minBottomHeight, hoverExtend: 4))
+        {
+            bottomWidgetHeight = tempBot;
+        }
+
+        ImGui.Dummy(new Vector2(0, splitterThickness));
+
+        using (var child = ImRaii.Child("Inspector", new Vector2(0, bottomWidgetHeight)))
+        {
+            if (child.Success)
             {
-                using (new Ui.Hoverable(id.ToString(), 0f, margin: new Vector2(0f, 0f), padding: new Vector2(5f, 5f), highlight: true))
-                {
-                    DrawDebug(obj);
-                    DrawWidgets(player.Position, obj, ref transform!);
-                
-                    ImGui.SameLine();
-                    using (_ = ImRaii.Disabled(!ctrl))
-                    {
-                        if (ImGuiComponents.IconButton("###GroupErase", FontAwesomeIcon.Eraser))
-                        {
-                            AnyderService.ObjectManager.Objects.Remove(obj);
-                            obj.Dispose();
-                            plugin.Overlay.SelectedTransform = null;
-                            continue;
-                        }
-                        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-                        {
-                            ImGui.SetTooltip("Ctrl + Click to erase this object.");
-                        }
-                    }
-
-                    if (plugin.HyperEnabled && obj.Type is ObjectType.SharedGroup)
-                    {
-                        ImGui.SameLine();
-                        if (ImGui.Checkbox("Collision", ref obj.Group!.Collide))
-                        {
-                            transform.Update();
-                        }
-                    }
-                
-                    DrawTransform(ref transform);
-                    if (obj.Type is ObjectType.SharedGroup)
-                    {
-                        if (obj.Group != null && obj.Group.HasStains())
-                        {
-                            DrawStain(obj.Group);
-                        }
-                    }
-                }
+                ImGui.Text($"{selectedObject.Name}");
+                using var innerChild = ImRaii.Child("InnerInspector", new Vector2(0, ImGui.GetContentRegionAvail().Y));
+                DrawInspector(selectedObject, player);
             }
-            
-            // Handle highlighting for supported objects
-            hovered = hovered || ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled);
-            if (obj.Type is ObjectType.SharedGroup or ObjectType.Model)
-            {
-                switch (hovered)
-                {
-                    case true when !obj.IsHighlighted:
-                        obj.Highlight(35);
-                        break;
-                    case false when obj.IsHighlighted:
-                        obj.RemoveHighlight();
-                        break;
-                }
-            }
-            
-            ImGui.Spacing();
         }
     }
-
+    
     [Conditional("DEBUG")]
     private void DrawDebug(SpawnedObject obj)
     {
@@ -276,6 +245,7 @@ public class MainWindow : CustomWindow, IDisposable
             });
                 
             plugin.Overlay.SelectedTransform = null;
+            selectedObject = null;
         }
 
         if (plugin.HyperEnabled)
@@ -304,12 +274,101 @@ public class MainWindow : CustomWindow, IDisposable
             }
         }
     }
+    
+    private void DrawInspector(SpawnedObject obj, IPlayerCharacter player)
+    {
+        var ctrl = ImGui.GetIO().KeyCtrl;
+        
+        var transform = obj.GetTransform();
+
+        using (new Ui.Hoverable("###ObjectInspector", 0f, margin: new Vector2(0f, 0f), padding: new Vector2(5f, 5f), highlight: true))
+        {
+            //DrawDebug(obj);
+            DrawWidgets(player.Position, obj, ref transform!);
+            
+            ImGui.SameLine();
+            using (_ = ImRaii.Disabled(!ctrl))
+            {
+                if (ImGuiComponents.IconButton("###GroupErase", FontAwesomeIcon.Eraser))
+                {
+                    AnyderService.ObjectManager.Objects.Remove(obj);
+                    obj.Dispose();
+                    plugin.Overlay.SelectedTransform = null;
+                    selectedObject = null;
+                    return;
+                }
+                if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+                {
+                    ImGui.SetTooltip("Ctrl + Click to erase this object.");
+                }
+            }
+
+            if (plugin.HyperEnabled && obj.Type is ObjectType.SharedGroup)
+            {
+                ImGui.SameLine();
+                if (ImGui.Checkbox("Collision", ref obj.Group!.Collide))
+                {
+                    transform.Update();
+                }
+            }
+            
+            DrawTransform(ref transform);
+            if (obj.Type is ObjectType.SharedGroup)
+            {
+                if (obj.Group != null && obj.Group.HasStains())
+                {
+                    DrawStain(obj.Group);
+                }
+            }
+        }
+    }
+
+    private void DrawList(IPlayerCharacter player)
+    {
+        var id = 0;
+        foreach (var obj in AnyderService.ObjectManager.Objects.ToList())
+        {
+            if (obj.Type is ObjectType.ActorVfx || !obj.IsValid) continue;
+            using var pushedId = ImRaii.PushId(id++);
+            
+            var transform = obj.GetTransform();
+            var opened = DrawObjHeader(player.Position, obj, ref transform!, ref id);
+            var hovered = ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled);
+
+            if (opened)
+            {
+                selectedObject = obj;
+            }
+            
+            // Handle highlighting for supported objects
+            hovered = hovered || ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled);
+            if (obj.Type is ObjectType.SharedGroup or ObjectType.Model)
+            {
+                switch (hovered)
+                {
+                    case true when !obj.IsHighlighted:
+                        obj.Highlight(35);
+                        break;
+                    case false when obj.IsHighlighted:
+                        obj.RemoveHighlight();
+                        break;
+                }
+            }
+            
+            ImGui.Spacing();
+        }
+    }
 
     private bool DrawObjHeader(Vector3 playerPos, SpawnedObject obj, ref Transform transform, ref int id)
     {
         var name = plugin.Configuration.PathDictionary.GetValueOrDefault(obj.Path, obj.Name);
         var distance = Vector3.Distance(transform.Position, playerPos);
-        return ImGui.CollapsingHeader($"[{distance:F1}] - {name} [{obj.Type}]###{name}{id++}");
+        using (new Ui.Hoverable(id.ToString(), 0f, margin: new Vector2(0f, 0f), padding: new Vector2(5f, 5f), highlight: true))
+        {
+            ImGui.Text($"[{distance:F1}] - {name} [{obj.Type}]###{name}{id++}");
+        }
+
+        return ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled) && ImGui.IsMouseClicked(ImGuiMouseButton.Left);
     }
 
     private void DrawWidgets(Vector3 playerPos, SpawnedObject obj, ref Transform transform)

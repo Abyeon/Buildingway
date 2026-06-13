@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Numerics;
+using AbeUtils.Windows;
 using Buildingway.Utils.Interface;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
 
 namespace Buildingway.Windows;
 
-public class ConfigWindow : CustomWindow, IDisposable
+public class ConfigWindow : GradientWindow, IDisposable
 {
     private readonly Configuration configuration;
 
