@@ -40,7 +40,6 @@ public sealed class Plugin : IDalamudPlugin
     internal Configuration Configuration { get; init; }
     internal readonly WindowSystem WindowSystem = new("Buildingway");
     
-    private ConfigWindow ConfigWindow { get; init; }
     private MainWindow MainWindow { get; init; }
     private CatalogWindow CatalogWindow { get; init; }
     private SavedPathsWindow SavedPathsWindow { get; init; }
@@ -48,12 +47,14 @@ public sealed class Plugin : IDalamudPlugin
 
     internal IDalamudPlugin Hyperborea = null!;
 
-    internal bool Enabled { get; set; } = false;
+    internal bool Enabled { get; set; }
     internal bool HyperEnabled => Enabled && Hyperborea.GetFoP<bool>("Enabled");
     internal bool ShouldSpawnWithCollision => HyperEnabled && Configuration.SpawnWithCollision;
 
     public Plugin()
     {
+        PluginInterface.UiBuilder.DisableAutomaticUiHide = true;
+        
         AnyderService.Init(PluginInterface);
         ECommonsMain.Init(PluginInterface, this, Module.DalamudReflector);
         DalamudReflector.RegisterOnInstalledPluginsChangedEvents(PluginsChanged);
@@ -68,14 +69,12 @@ public sealed class Plugin : IDalamudPlugin
         CommandHandler = new CommandHandler(this);
         
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-
-        ConfigWindow = new ConfigWindow(this);
+        
         MainWindow = new MainWindow(this);
         CatalogWindow = new CatalogWindow(this);
         SavedPathsWindow = new SavedPathsWindow(this);
         Overlay = new Overlay(this);
 
-        WindowSystem.AddWindow(ConfigWindow);
         WindowSystem.AddWindow(MainWindow);
         WindowSystem.AddWindow(CatalogWindow);
         WindowSystem.AddWindow(SavedPathsWindow);
@@ -84,7 +83,6 @@ public sealed class Plugin : IDalamudPlugin
         Overlay.Toggle();
         
         PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
-        PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUi;
     }
 
@@ -92,12 +90,10 @@ public sealed class Plugin : IDalamudPlugin
     {
         // Unregister all actions to not leak anything during disposal of plugin
         PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
-        PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
         PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
         
         WindowSystem.RemoveAllWindows();
-
-        ConfigWindow.Dispose();
+        
         MainWindow.Dispose();
         CatalogWindow.Dispose();
         SavedPathsWindow.Dispose();
@@ -156,7 +152,6 @@ public sealed class Plugin : IDalamudPlugin
         if (placement.Name != null) obj.Name = placement.Name;
     }
 
-    public void ToggleConfigUi() => ConfigWindow.Toggle();
     public void ToggleMainUi() => MainWindow.Toggle();
     public void ToggleCatalogUi() => CatalogWindow.Toggle();
     public void ToggleSavedPathsUi() => SavedPathsWindow.Toggle();
