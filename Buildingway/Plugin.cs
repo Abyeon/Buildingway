@@ -111,14 +111,16 @@ public sealed class Plugin : IDalamudPlugin
 
     public void PluginsChanged()
     {
+        bool prevValue = Enabled;
         Enabled = DalamudReflector.TryGetDalamudPlugin("Hyperborea", out var hyperborea);
-        if (!Enabled)
+        switch (Enabled)
         {
-            AnyderService.ObjectManager.Clear();
-        }
-        else
-        {
-            Hyperborea = (IDalamudPlugin)hyperborea;
+            case false when prevValue:
+                AnyderService.ObjectManager.Clear();
+                break;
+            case true:
+                Hyperborea = (IDalamudPlugin)hyperborea;
+                break;
         }
     }
 
